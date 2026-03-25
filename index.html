@@ -648,6 +648,76 @@
             border-top: 1px solid rgba(0, 255, 255, 0.2);
         }
 
+        /* Login Overlay */
+        .login-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.95);
+            backdrop-filter: blur(12px);
+            z-index: 2000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: all 0.3s;
+        }
+
+        .login-modal {
+            background: rgba(10, 30, 40, 0.95);
+            border: 2px solid #0ff;
+            border-radius: 28px;
+            padding: 32px;
+            width: 90%;
+            max-width: 380px;
+            text-align: center;
+            box-shadow: 0 0 30px rgba(0, 255, 255, 0.3);
+        }
+
+        .login-modal h2 {
+            color: #0ff;
+            margin-bottom: 24px;
+            font-size: 1.8rem;
+            letter-spacing: 2px;
+        }
+
+        .login-modal input {
+            width: 100%;
+            padding: 12px;
+            background: rgba(0, 30, 40, 0.8);
+            border: 1px solid #0ff;
+            color: #0ff;
+            border-radius: 40px;
+            font-size: 1rem;
+            text-align: center;
+            margin-bottom: 20px;
+            outline: none;
+        }
+
+        .login-modal button {
+            background: #0ff;
+            color: #000;
+            border: none;
+            padding: 10px 24px;
+            border-radius: 40px;
+            font-weight: bold;
+            cursor: pointer;
+            width: 100%;
+            font-size: 1rem;
+            transition: 0.2s;
+        }
+
+        .login-modal button:active {
+            transform: scale(0.97);
+        }
+
+        .login-error {
+            color: #ff6666;
+            margin-top: 12px;
+            font-size: 0.8rem;
+        }
+
         @keyframes pulse {
             0%, 100% { opacity: 1; transform: scale(1); }
             50% { opacity: 0.5; transform: scale(1.2); }
@@ -710,10 +780,43 @@
             margin-top: 8px;
             text-align: center;
         }
+
+        /* Logout button */
+        .logout-btn {
+            position: fixed;
+            bottom: 15px;
+            right: 15px;
+            background: rgba(0,0,0,0.6);
+            color: #0ff;
+            border: 1px solid #0ff;
+            padding: 6px 12px;
+            border-radius: 30px;
+            font-size: 0.7rem;
+            cursor: pointer;
+            z-index: 1000;
+            backdrop-filter: blur(4px);
+            transition: 0.2s;
+        }
+        .logout-btn:active {
+            transform: scale(0.95);
+            background: #0ff;
+            color: #000;
+        }
     </style>
 </head>
 <body>
-<div class="container">
+
+<!-- Login Overlay -->
+<div id="loginOverlay" class="login-overlay">
+    <div class="login-modal">
+        <h2>🔐 TrojanAI (BP)</h2>
+        <input type="password" id="passwordInput" placeholder="กรอกรหัสผ่าน" autofocus>
+        <button id="loginBtn">เข้าสู่ระบบ</button>
+        <div id="loginError" class="login-error"></div>
+    </div>
+</div>
+
+<div class="container" style="display: none;" id="mainContainer">
     <div class="hud-header">
         <div class="title">⚡ TrojanAI (BP) ⚡</div>
         <div class="subtitle">▣ 6-RELAY | TELEGRAM + HTTP API | VOICE + KEYBOARD ▣</div>
@@ -752,11 +855,11 @@
             <div style="font-size:0.7rem; color:#0ff; margin-bottom: 8px;">⚙️ กำหนด URL เฉพาะรายรีเลย์ (Telegram จะใช้ URL เหล่านี้)</div>
             <div class="scrollable-table">
             <table class="relay-url-table" id="relay-url-table">
-                <thead><tr><th>รีเลย์</th><th>URL เปิด (ON)</th><th>URL ปิด (OFF)</th><th>หน่วงเวลา(วินาที)</th> </thead>
+                <thead><tr><th>รีเลย์</th><th>URL เปิด (ON)</th><th>URL ปิด (OFF)</th><th>หน่วงเวลา(วินาที)</th></tr></thead>
                 <tbody id="relay-url-tbody">
                     <!-- 6 rows will be generated dynamically by JS -->
                 </tbody>
-             </table>
+            </table>
             </div>
             <button class="connect-btn" onclick="saveRelayUrls()">💾 บันทึก URL และหน่วงเวลา</button>
             <div class="note-text">📌 Telegram Bot จะใช้ URL เหล่านี้ในการควบคุมรีเลย์ผ่าน HTTP API</div>
@@ -815,6 +918,9 @@
         </div>
     </div>
 </div>
+
+<!-- Logout Button -->
+<div class="logout-btn" id="logoutBtn">🚪 ออกจากระบบ</div>
 
 <script>
     // ==================== CONFIGURATION 6 RELAYS ====================
@@ -943,7 +1049,6 @@
     }
     function toggleRelay(id) { const relay = relays.find(r => r.id === id); if(relay) updateRelayState(id, !relay.state); }
     
-    // ✅ FIXED: ALL ON and ALL OFF functions with correct messages
     function allRelaysOn() {
         relays.forEach(r => { if(!r.state) { sendHttpCommand(r.id, true); r.state = true; } });
         renderRelays();
@@ -1052,12 +1157,86 @@
     function connectMQTT(){ let broker=document.getElementById('mqtt-broker').value, port=parseInt(document.getElementById('mqtt-port').value), clientId=document.getElementById('mqtt-clientid').value||'webclient_'+Date.now(); if(mqttClient) try{mqttClient.disconnect();}catch(e){} mqttClient=new Paho.MQTT.Client(broker,port,clientId); mqttClient.onConnectionLost=()=>{ updateConnectionStatus(false,'MQTT Disconnected'); document.getElementById('mqtt-status').innerHTML='❌ หลุด'; }; mqttClient.onMessageArrived=(msg)=>{ let m=msg.destinationName.match(/relay\/(\d+)/); if(m){ let rid=parseInt(m[1]); if(rid>=1&&rid<=RELAY_COUNT){ let newState=msg.payloadString==='ON'||msg.payloadString==='1'; let relay=relays.find(r=>r.id===rid); if(relay && relay.state!==newState){ relay.state=newState; renderRelays(); } } } }; mqttClient.connect({timeout:5, onSuccess:()=>{ updateConnectionStatus(true,'MQTT Online'); document.getElementById('mqtt-status').innerHTML='✅ Connected'; for(let i=1;i<=RELAY_COUNT;i++) mqttClient.subscribe(`home/relay/${i}/state`); }, onFailure:()=>{ updateConnectionStatus(false,'MQTT ล้มเหลว'); document.getElementById('mqtt-status').innerHTML='❌ ล้มเหลว'; } }); }
     function testHTTPConnection(){ let base=document.getElementById('http-base-url').value.trim(); if(base) httpBaseURL=base; fetch(httpBaseURL,{method:'HEAD',mode:'no-cors'}).then(()=>{ updateConnectionStatus(true,'HTTP พร้อม'); document.getElementById('http-status').innerHTML='✅ ฐานพร้อม'; }).catch(()=>{ updateConnectionStatus(true,'HTTP Active'); }); }
 
-    // ==================== INIT ====================
-    document.querySelectorAll('.proto-btn').forEach(btn=>btn.addEventListener('click',()=>{ document.querySelectorAll('.proto-btn').forEach(b=>b.classList.remove('active')); btn.classList.add('active'); currentProtocol=btn.dataset.proto; document.querySelectorAll('.connection-config').forEach(c=>c.classList.remove('active')); document.getElementById(`${currentProtocol}-config`).classList.add('active'); if(currentProtocol!=='telegram' && telegramPollingInterval) clearInterval(telegramPollingInterval); }));
-    document.getElementById('allOnBtn').addEventListener('click',allRelaysOn); document.getElementById('allOffBtn').addEventListener('click',allRelaysOff); document.getElementById('syncBtn').addEventListener('click',syncStatus);
-    function updateTimestamp(){ document.getElementById('timestamp').innerHTML=`⏱️ ${new Date().toLocaleTimeString('th-TH')}`; }
-    loadStoredSettings(); renderRelays(); updateTimestamp(); setInterval(updateTimestamp,1000); setTimeout(()=>setupAutoListening(),1000);
-    console.log(`✅ TrojanAI (BP) v${VERSION} - 6 รีเลย์ พร้อมใช้งาน (Netlify)`);
+    // ==================== INITIALIZATION (only after login) ====================
+    function initializeApp() {
+        // Set up protocol buttons
+        document.querySelectorAll('.proto-btn').forEach(btn=>btn.addEventListener('click',()=>{
+            document.querySelectorAll('.proto-btn').forEach(b=>b.classList.remove('active'));
+            btn.classList.add('active');
+            currentProtocol=btn.dataset.proto;
+            document.querySelectorAll('.connection-config').forEach(c=>c.classList.remove('active'));
+            document.getElementById(`${currentProtocol}-config`).classList.add('active');
+            if(currentProtocol!=='telegram' && telegramPollingInterval) clearInterval(telegramPollingInterval);
+        }));
+        document.getElementById('allOnBtn').addEventListener('click',allRelaysOn);
+        document.getElementById('allOffBtn').addEventListener('click',allRelaysOff);
+        document.getElementById('syncBtn').addEventListener('click',syncStatus);
+        
+        // Load stored settings, render, start time, voice
+        loadStoredSettings();
+        renderRelays();
+        function updateTimestamp(){ document.getElementById('timestamp').innerHTML=`⏱️ ${new Date().toLocaleTimeString('th-TH')}`; }
+        updateTimestamp();
+        setInterval(updateTimestamp,1000);
+        setTimeout(()=>setupAutoListening(),1000);
+        console.log(`✅ TrojanAI (BP) v${VERSION} - 6 รีเลย์ พร้อมใช้งาน (Netlify)`);
+    }
+
+    // ==================== LOGIN SYSTEM ====================
+    const ACCESS_PASSWORD = "trojan123";  // เปลี่ยนรหัสผ่านที่นี่
+    
+    function checkLoginStatus() {
+        const authenticated = sessionStorage.getItem('authenticated');
+        if (authenticated === 'true') {
+            document.getElementById('loginOverlay').style.display = 'none';
+            document.getElementById('mainContainer').style.display = 'block';
+            initializeApp(); // เริ่มทำงานแอป
+            return true;
+        } else {
+            document.getElementById('loginOverlay').style.display = 'flex';
+            document.getElementById('mainContainer').style.display = 'none';
+            return false;
+        }
+    }
+    
+    function login(password) {
+        if (password === ACCESS_PASSWORD) {
+            sessionStorage.setItem('authenticated', 'true');
+            document.getElementById('loginError').innerText = '';
+            checkLoginStatus(); // จะซ่อน overlay และเริ่มแอป
+            return true;
+        } else {
+            document.getElementById('loginError').innerText = '❌ รหัสผ่านไม่ถูกต้อง';
+            return false;
+        }
+    }
+    
+    // Logout function
+    function logout() {
+        sessionStorage.removeItem('authenticated');
+        location.reload(); // reload หน้าเพื่อกลับไป login
+    }
+    
+    // Bind events when DOM ready
+    document.addEventListener('DOMContentLoaded', function() {
+        checkLoginStatus();
+        
+        const loginBtn = document.getElementById('loginBtn');
+        const passwordInput = document.getElementById('passwordInput');
+        const logoutBtn = document.getElementById('logoutBtn');
+        
+        function handleLogin() {
+            const pwd = passwordInput.value;
+            login(pwd);
+        }
+        
+        loginBtn.addEventListener('click', handleLogin);
+        passwordInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') handleLogin();
+        });
+        
+        logoutBtn.addEventListener('click', logout);
+    });
 </script>
 </body>
 </html>
