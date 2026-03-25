@@ -3,6 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes, viewport-fit=cover">
+    <!-- แก้ไข: เพิ่ม meta tag สำหรับ mobile-web-app-capable (รองรับทั้ง iOS และ Android) -->
+    <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="description" content="TrojanAI (BP) - ระบบควบคุมรีเลย์ผ่าน Telegram Bot + HTTP API + Voice Command">
@@ -18,7 +20,7 @@
     <link rel="icon" type="image/x-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='45' fill='%23ff4444'/%3E%3Ctext x='50' y='67' text-anchor='middle' fill='white' font-size='40' font-weight='bold'%3ET%3C/text%3E%3C/svg%3E">
     
     <style>
-        /* ==================== CSS ทั้งหมด (เหมือนเดิม) ==================== */
+        /* ==================== CSS ทั้งหมด (ไม่เปลี่ยนแปลง) ==================== */
         * {
             margin: 0;
             padding: 0;
@@ -762,7 +764,7 @@
             <div style="font-size:0.7rem; color:#0ff; margin-bottom: 8px;">⚙️ กำหนด URL เฉพาะรายรีเลย์ (Telegram จะใช้ URL เหล่านี้)</div>
             <div class="scrollable-table">
             <table class="relay-url-table" id="relay-url-table">
-                <thead><tr><th style="width: 15%;">รีเลย์</th><th style="width: 35%;">URL เปิด (ON)</th><th style="width: 35%;">URL ปิด (OFF)</th><th style="width: 15%;">หน่วงเวลา(วินาที)</th> </thead>
+                <thead><tr><th style="width: 15%;">รีเลย์</th><th style="width: 35%;">URL เปิด (ON)</th><th style="width: 35%;">URL ปิด (OFF)</th><th style="width: 15%;">หน่วงเวลา(วินาที)</th> </tr></thead>
                 <tbody>
                     <tr><td><span class="relay-color" style="background: #ff4444;"></span> RELAY 1</td>
                         <td><input type="text" id="relay1-on" class="url-input-small" value="http://192.168.1.40/toggle"></td>
@@ -1055,12 +1057,19 @@
         return `${httpBaseURL}/${suffix}`;
     }
     
+    // แก้ไข: ใช้ Image object แทน fetch เพื่อหลีกเลี่ยง Mixed Content และ CORS
     function sendHttpCommand(relayId, state) {
         const url = getHttpUrl(relayId, state);
         if (url && url !== "") {
-            fetch(url, { method: 'GET', mode: 'no-cors' })
-                .catch(e => console.log("HTTP request sent:", url));
-            console.log(`HTTP ${state ? 'ON' : 'OFF'} -> ${url}`);
+            // เพิ่ม timestamp เพื่อป้องกัน cache
+            const separator = url.includes('?') ? '&' : '?';
+            const fullUrl = url + separator + '_=' + Date.now();
+            
+            console.log(`Sending command via Image: ${fullUrl}`);
+            const img = new Image();
+            img.onload = () => console.log(`✅ Command sent successfully: ${url}`);
+            img.onerror = () => console.warn(`⚠️ Command may have failed (but likely sent): ${url}`);
+            img.src = fullUrl;
             return true;
         } else {
             showToastMessage(`⚠️ ไม่มี URL สำหรับรีเลย์ ${relayId}`);
@@ -1705,6 +1714,7 @@
     function testHTTPConnection() {
         const baseInput = document.getElementById('http-base-url');
         if (baseInput && baseInput.value.trim()) httpBaseURL = baseInput.value.trim();
+        // ใช้ HEAD fetch เพื่อทดสอบ แต่ยังคงมีข้อจำกัด Mixed Content (แต่เป็นแค่การทดสอบ)
         fetch(httpBaseURL, { method: 'HEAD', mode: 'no-cors' })
             .then(() => { updateConnectionStatus(true, 'HTTP พร้อม'); const statusDiv = document.getElementById('http-status'); if (statusDiv) statusDiv.innerHTML = '✅ ฐานพร้อมใช้งาน'; })
             .catch(() => { updateConnectionStatus(true, 'HTTP Active'); const statusDiv = document.getElementById('http-status'); if (statusDiv) statusDiv.innerHTML = '⚠️ ใช้งานตาม URL'; });
