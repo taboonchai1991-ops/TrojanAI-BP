@@ -1,0 +1,1488 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes, viewport-fit=cover">
+    <title>AI HUD Relay Control | TrojanAI (BP) | Smart Voice Assistant</title>
+    
+    <!-- MQTT Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.1/mqttws31.min.js"></script>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            min-height: 100vh;
+            background: radial-gradient(circle at 20% 30%, #0a0f1e, #03050b);
+            font-family: 'Segoe UI', 'Orbitron', 'Courier New', monospace;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 16px;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        body::before {
+            content: "";
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: repeating-linear-gradient(
+                0deg,
+                rgba(0, 255, 255, 0.03) 0px,
+                rgba(0, 255, 255, 0.03) 2px,
+                transparent 2px,
+                transparent 6px
+            );
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .container {
+            max-width: 1400px;
+            width: 100%;
+            z-index: 2;
+        }
+
+        .hud-header {
+            text-align: center;
+            margin-bottom: 24px;
+            position: relative;
+        }
+
+        .title {
+            font-size: 2.2rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #0ff, #0a8, #0ff);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            letter-spacing: 3px;
+            text-shadow: 0 0 30px rgba(0, 255, 255, 0.5);
+            animation: pulse 2s infinite;
+        }
+
+        .subtitle {
+            color: #8ae2ff;
+            font-size: 0.7rem;
+            letter-spacing: 2px;
+            margin-top: 6px;
+            opacity: 0.8;
+            word-break: break-word;
+        }
+
+        .connection-panel {
+            background: rgba(10, 20, 30, 0.75);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(0, 255, 255, 0.4);
+            border-radius: 24px;
+            padding: 16px;
+            margin-bottom: 20px;
+        }
+
+        .protocol-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 16px;
+            justify-content: center;
+        }
+
+        .proto-btn {
+            background: rgba(0, 30, 40, 0.8);
+            border: 1px solid #0ff;
+            color: #0ff;
+            padding: 8px 16px;
+            border-radius: 40px;
+            cursor: pointer;
+            font-family: monospace;
+            font-size: 0.85rem;
+            transition: all 0.3s;
+            flex: 0 1 auto;
+        }
+
+        .proto-btn.active {
+            background: #0ff;
+            color: #000;
+            box-shadow: 0 0 15px #0ff;
+        }
+
+        .proto-btn:active {
+            transform: scale(0.96);
+        }
+
+        .connection-config {
+            display: none;
+            margin-top: 16px;
+            padding: 12px;
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 20px;
+        }
+
+        .connection-config.active {
+            display: block;
+        }
+
+        .config-input {
+            background: rgba(0, 30, 40, 0.8);
+            border: 1px solid #0ff;
+            color: #0ff;
+            padding: 10px 12px;
+            border-radius: 12px;
+            margin: 5px 0;
+            font-family: monospace;
+            width: 100%;
+            font-size: 0.9rem;
+        }
+
+        .config-input:focus {
+            outline: none;
+            box-shadow: 0 0 10px #0ff;
+        }
+
+        .connect-btn {
+            background: #0ff;
+            color: #000;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 30px;
+            cursor: pointer;
+            font-weight: bold;
+            margin-top: 10px;
+            width: 100%;
+            font-size: 0.9rem;
+        }
+
+        .connect-btn:active {
+            transform: scale(0.97);
+        }
+
+        .relay-url-table {
+            margin-top: 12px;
+            border-collapse: collapse;
+            width: 100%;
+            font-size: 0.7rem;
+            display: block;
+            overflow-x: auto;
+        }
+
+        .relay-url-table th, .relay-url-table td {
+            border: 1px solid rgba(0, 255, 255, 0.3);
+            padding: 8px;
+            text-align: left;
+            color: #0ff;
+            vertical-align: middle;
+        }
+
+        .relay-url-table th {
+            background: rgba(0, 40, 50, 0.6);
+        }
+
+        .url-input-small {
+            background: rgba(0, 30, 40, 0.8);
+            border: 1px solid #0ff;
+            color: #0ff;
+            padding: 6px 8px;
+            border-radius: 8px;
+            font-family: monospace;
+            width: 100%;
+            font-size: 0.7rem;
+        }
+
+        .delay-input {
+            width: 80px;
+            background: rgba(0, 30, 40, 0.8);
+            border: 1px solid #0ff;
+            color: #0ff;
+            padding: 4px 6px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .ai-status {
+            background: rgba(10, 20, 30, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(0, 255, 255, 0.4);
+            border-radius: 20px;
+            padding: 12px 20px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-family: monospace;
+            font-size: 0.8rem;
+        }
+
+        .status-led {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #f00;
+            box-shadow: 0 0 6px #f00;
+            animation: blink 1.5s infinite;
+        }
+
+        .status-led.connected {
+            background: #0f0;
+            box-shadow: 0 0 8px #0f0;
+            animation: none;
+        }
+
+        .status-led.listening {
+            background: #ff0;
+            box-shadow: 0 0 8px #ff0;
+            animation: pulse 0.5s infinite;
+        }
+
+        .status-text {
+            color: #0ff;
+            font-weight: bold;
+            font-size: 0.75rem;
+        }
+
+        .relay-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 16px;
+            margin-bottom: 30px;
+        }
+
+        .relay-card {
+            background: rgba(0, 20, 30, 0.7);
+            backdrop-filter: blur(10px);
+            border-radius: 24px;
+            padding: 16px 12px;
+            text-align: center;
+            border: 1px solid rgba(0, 255, 255, 0.3);
+            transition: all 0.2s ease;
+            position: relative;
+            cursor: pointer;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .relay-card.active {
+            border-color: #0ff;
+            box-shadow: 0 0 20px rgba(0, 255, 255, 0.5);
+            background: rgba(0, 60, 70, 0.8);
+        }
+
+        .relay-card:active {
+            transform: scale(0.97);
+        }
+
+        .relay-icon {
+            width: 70px;
+            height: 70px;
+            margin: 0 auto 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .relay-icon img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            filter: drop-shadow(0 0 8px rgba(0, 255, 255, 0.5));
+            transition: all 0.3s ease;
+        }
+
+        .relay-card.active .relay-icon img {
+            filter: drop-shadow(0 0 15px rgba(0, 255, 255, 0.8));
+            animation: iconPulse 0.5s ease-in-out;
+        }
+
+        @keyframes iconPulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+
+        .relay-number {
+            font-size: 1rem;
+            font-weight: bold;
+            color: #0ff;
+            text-shadow: 0 0 6px #0ff;
+            letter-spacing: 1px;
+        }
+
+        .relay-name {
+            font-size: 1rem;
+            color: #b0f0ff;
+            margin: 8px 0;
+            font-weight: bold;
+            word-break: break-word;
+        }
+
+        .relay-label {
+            font-size: 0.7rem;
+            color: #6c9;
+            margin: 4px 0;
+        }
+
+        .relay-state {
+            font-size: 0.9rem;
+            margin: 8px 0 0;
+            padding: 5px;
+            border-radius: 30px;
+            background: rgba(0,0,0,0.5);
+            display: inline-block;
+            width: 70px;
+            font-weight: bold;
+        }
+
+        .state-off {
+            color: #ff6a6a;
+        }
+
+        .state-on {
+            color: #6aff6a;
+        }
+
+        .delay-control {
+            margin-top: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            font-size: 0.65rem;
+            background: rgba(0,0,0,0.3);
+            padding: 4px 8px;
+            border-radius: 20px;
+        }
+
+        .delay-control label {
+            color: #0ff;
+        }
+
+        .delay-control input {
+            width: 50px;
+            background: rgba(0, 30, 40, 0.8);
+            border: 1px solid #0ff;
+            color: #0ff;
+            padding: 2px 4px;
+            border-radius: 8px;
+            text-align: center;
+            font-size: 0.65rem;
+        }
+
+        .edit-name-btn {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: rgba(0, 255, 255, 0.2);
+            border: 1px solid #0ff;
+            color: #0ff;
+            cursor: pointer;
+            padding: 4px 8px;
+            border-radius: 20px;
+            font-size: 0.65rem;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .edit-name-btn:active {
+            background: #0ff;
+            color: #000;
+            transform: scale(0.95);
+        }
+
+        .command-panel {
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(8px);
+            border-radius: 28px;
+            padding: 18px;
+            border: 1px solid rgba(0, 255, 255, 0.4);
+            margin-top: 16px;
+        }
+
+        .btn-group {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 12px;
+            margin: 15px 0;
+        }
+
+        .hud-btn {
+            background: rgba(0, 30, 40, 0.9);
+            border: 1px solid #0ff;
+            color: #0ff;
+            padding: 10px 18px;
+            border-radius: 40px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.15s;
+            font-family: monospace;
+            font-size: 0.85rem;
+            backdrop-filter: blur(4px);
+            flex: 1;
+            min-width: 100px;
+        }
+
+        .hud-btn:active {
+            background: #0ff;
+            color: #000;
+            transform: scale(0.97);
+        }
+
+        .hud-btn.danger {
+            border-color: #f66;
+            color: #f66;
+        }
+
+        .hud-btn.danger:active {
+            background: #f66;
+            color: #000;
+        }
+
+        .voice-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            background: #0a1a1f;
+            padding: 10px 20px;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 1px solid #0ff;
+            width: 100%;
+            max-width: 320px;
+            margin: 10px auto 0;
+        }
+
+        .voice-badge.listening {
+            background: #0ff22a;
+            border-color: #ff0;
+            animation: pulse 0.5s infinite;
+        }
+
+        .voice-badge:active {
+            transform: scale(0.98);
+        }
+
+        #voiceHint {
+            font-size: 0.7rem;
+            text-align: center;
+            word-break: break-word;
+        }
+
+        .note-text {
+            font-size: 0.65rem;
+            color: #6c9;
+            margin-top: 5px;
+            text-align: center;
+        }
+
+        /* Modal for editing name */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(8px);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: rgba(10, 30, 40, 0.95);
+            border: 2px solid #0ff;
+            border-radius: 28px;
+            padding: 24px;
+            width: 90%;
+            max-width: 400px;
+            text-align: center;
+        }
+
+        .modal-content h3 {
+            color: #0ff;
+            margin-bottom: 20px;
+            font-size: 1.3rem;
+        }
+
+        .modal-input {
+            background: rgba(0, 30, 40, 0.8);
+            border: 1px solid #0ff;
+            color: #0ff;
+            padding: 12px;
+            border-radius: 12px;
+            width: 100%;
+            font-size: 1rem;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+        }
+
+        .modal-btn {
+            padding: 10px 20px;
+            border-radius: 30px;
+            border: none;
+            cursor: pointer;
+            font-weight: bold;
+            flex: 1;
+        }
+
+        .modal-btn.save {
+            background: #0ff;
+            color: #000;
+        }
+
+        .modal-btn.delete {
+            background: #f66;
+            color: #000;
+        }
+
+        .modal-btn.cancel {
+            background: #333;
+            color: #fff;
+        }
+
+        .modal-btn:active {
+            transform: scale(0.97);
+        }
+
+        .listening-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #ff0;
+            margin-right: 8px;
+            animation: pulse 0.5s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(1.2); }
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        @media (max-width: 550px) {
+            .title { font-size: 1.6rem; }
+            .relay-card { padding: 12px 8px; }
+            .relay-icon { width: 55px; height: 55px; }
+            .relay-name { font-size: 0.85rem; }
+            .relay-label { font-size: 0.6rem; }
+            .hud-btn { padding: 8px 12px; font-size: 0.75rem; min-width: 80px; }
+            .status-text { font-size: 0.65rem; }
+            .edit-name-btn { font-size: 0.55rem; padding: 3px 6px; }
+        }
+        
+        .toast-message {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 255, 255, 0.2);
+            backdrop-filter: blur(12px);
+            border: 1px solid #0ff;
+            color: #0ff;
+            padding: 10px 20px;
+            border-radius: 40px;
+            font-family: monospace;
+            font-weight: bold;
+            z-index: 1001;
+            font-size: 0.8rem;
+            max-width: 90vw;
+            text-align: center;
+            pointer-events: none;
+        }
+        
+        .scrollable-table {
+            overflow-x: auto;
+            display: block;
+            width: 100%;
+        }
+        
+        .relay-color {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 6px;
+        }
+        
+        .voice-status {
+            font-size: 0.7rem;
+            color: #ff0;
+            margin-top: 8px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="hud-header">
+        <div class="title">⚡ TrojanAI (BP) ⚡</div>
+        <div class="subtitle">▣ SMART VOICE | AUTO-LISTEN | DELAY CONTROL | CUSTOM NAMES ▣</div>
+    </div>
+
+    <!-- Connection Panel -->
+    <div class="connection-panel">
+        <div class="protocol-buttons">
+            <button class="proto-btn active" data-proto="websocket">🔌 WebSocket</button>
+            <button class="proto-btn" data-proto="http">🌐 HTTP API</button>
+            <button class="proto-btn" data-proto="mqtt">📡 MQTT Broker</button>
+        </div>
+
+        <!-- WebSocket Config -->
+        <div id="websocket-config" class="connection-config active">
+            <input type="text" id="ws-url" class="config-input" placeholder="ws://192.168.1.100:81" value="ws://192.168.1.100:81">
+            <button class="connect-btn" onclick="connectWebSocket()">🔗 เชื่อมต่อ WebSocket</button>
+            <div id="ws-status" style="color:#0ff; margin-top:8px; font-size:0.7rem;"></div>
+        </div>
+
+        <!-- HTTP API Config -->
+        <div id="http-config" class="connection-config">
+            <div style="margin-bottom: 8px;">
+                <input type="text" id="http-base-url" class="config-input" placeholder="Base URL (IP หลัก)" value="http://192.168.1.188">
+                <button class="connect-btn" onclick="testHTTPConnection()">📡 ทดสอบ Base URL</button>
+            </div>
+            <div id="http-status" style="color:#0ff; margin-bottom: 12px; font-size:0.7rem;"></div>
+            
+            <div style="font-size:0.7rem; color:#0ff; margin-bottom: 8px;">⚙️ กำหนด URL เฉพาะรายรีเลย์</div>
+            <div class="scrollable-table">
+            <table class="relay-url-table" id="relay-url-table">
+                <thead>
+                    <tr>
+                        <th style="width: 15%;">รีเลย์</th>
+                        <th style="width: 35%;">URL เปิด (ON)</th>
+                        <th style="width: 35%;">URL ปิด (OFF)</th>
+                        <th style="width: 15%;">หน่วงเวลา(วินาที)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><span class="relay-color" style="background: #ff4444;"></span> RELAY 1</td>
+                        <td><input type="text" id="relay1-on" class="url-input-small" placeholder="http://..." value="http://192.168.1.40/toggle"></td>
+                        <td><input type="text" id="relay1-off" class="url-input-small" placeholder="http://..." value="http://192.168.1.40/toggle"></td>
+                        <td><input type="number" id="relay1-delay" class="delay-input" min="0" max="60" value="0" step="0.5"></td>
+                    </tr>
+                    <tr>
+                        <td><span class="relay-color" style="background: #44ff44;"></span> RELAY 2</td>
+                        <td><input type="text" id="relay2-on" class="url-input-small" placeholder="http://..." value="http://192.168.1.189/RELAY=ON"></td>
+                        <td><input type="text" id="relay2-off" class="url-input-small" placeholder="http://..." value="http://192.168.1.189/RELAY=OFF"></td>
+                        <td><input type="number" id="relay2-delay" class="delay-input" min="0" max="60" value="0" step="0.5"></td>
+                    </tr>
+                    <tr>
+                        <td><span class="relay-color" style="background: #4444ff;"></span> RELAY 3</td>
+                        <td><input type="text" id="relay3-on" class="url-input-small" placeholder="http://..."></td>
+                        <td><input type="text" id="relay3-off" class="url-input-small" placeholder="http://..."></td>
+                        <td><input type="number" id="relay3-delay" class="delay-input" min="0" max="60" value="0" step="0.5"></td>
+                    </tr>
+                    <tr>
+                        <td><span class="relay-color" style="background: #ffff44;"></span> RELAY 4</td>
+                        <td><input type="text" id="relay4-on" class="url-input-small" placeholder="http://..."></td>
+                        <td><input type="text" id="relay4-off" class="url-input-small" placeholder="http://..."></td>
+                        <td><input type="number" id="relay4-delay" class="delay-input" min="0" max="60" value="0" step="0.5"></td>
+                    </tr>
+                </tbody>
+            </table>
+            </div>
+            <button class="connect-btn" onclick="saveRelayUrls()">💾 บันทึก URL และหน่วงเวลา</button>
+        </div>
+
+        <!-- MQTT Config -->
+        <div id="mqtt-config" class="connection-config">
+            <input type="text" id="mqtt-broker" class="config-input" placeholder="broker.emqx.io" value="broker.emqx.io">
+            <input type="text" id="mqtt-port" class="config-input" placeholder="Port" value="8084">
+            <input type="text" id="mqtt-clientid" class="config-input" placeholder="Client ID" value="webclient_hud">
+            <button class="connect-btn" onclick="connectMQTT()">📶 เชื่อมต่อ MQTT</button>
+            <div id="mqtt-status" style="color:#0ff; margin-top:8px; font-size:0.7rem;"></div>
+        </div>
+    </div>
+
+    <div class="ai-status">
+        <div class="status-item"><span id="connection-led" class="status-led"></span><span class="status-text" id="connection-text">DISCONNECTED</span></div>
+        <div class="status-item"><span id="voice-led" class="status-led"></span><span class="status-text" id="voice-status-text">🤖 AI พร้อมทำงาน</span></div>
+        <div class="status-item"><span id="timestamp" class="status-text">⏱️ --:--:--</span></div>
+    </div>
+
+    <div class="relay-grid" id="relayGrid"></div>
+
+    <div class="command-panel">
+        <div style="text-align: center; color:#0ff; font-size:0.9rem;">🎙️ SMART VOICE ASSISTANT</div>
+        <div class="btn-group">
+            <button class="hud-btn" id="allOnBtn">🔘 ALL ON</button>
+            <button class="hud-btn danger" id="allOffBtn">⛔ ALL OFF</button>
+            <button class="hud-btn" id="syncBtn">🔄 SYNC</button>
+        </div>
+        <div style="display: flex; justify-content: center;">
+            <div class="voice-badge" id="voiceBadge" onclick="toggleAutoListen()">
+                <span>🎤</span><span id="voiceHint">🤖 AI ฟังอัตโนมัติ (ฟังตลอด)</span>
+            </div>
+        </div>
+        <div class="voice-status" id="voiceCommandDisplay"></div>
+        <div class="note-text">💡 แตะที่ปุ่ม ✏️ เพื่อเปลี่ยนชื่อรีเลย์ | นายชด จะจำชื่อใหม่และตอบกลับด้วยชื่อนั้น</div>
+        <div class="note-text">⏱ โปรแกรมนี้อุ๋ยบางแคเป็นคนคิดห้ามดัดอปลงแก้ไข(BP)</div>
+    </div>
+</div>
+
+<!-- Modal for editing relay name -->
+<div id="nameModal" class="modal">
+    <div class="modal-content">
+        <h3 id="modalTitle">ตั้งชื่อรีเลย์</h3>
+        <input type="text" id="relayNameInput" class="modal-input" placeholder="ใส่ชื่อที่ต้องการ...">
+        <div class="modal-buttons">
+            <button class="modal-btn save" onclick="saveRelayName()">💾 บันทึก</button>
+            <button class="modal-btn delete" onclick="deleteRelayName()">🗑️ ลบชื่อ</button>
+            <button class="modal-btn cancel" onclick="closeModal()">ยกเลิก</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Custom icon URL
+    const CUSTOM_ICON_URL = "https://od.lk/s/N18yODE1OTE2NTlf/cre.ico";
+    
+    // Relay Data with custom names support
+    let relays = [
+        { id: 1, name: "ไฟหลัก", state: false, label: "RELAY_01", pin: "D1", icon: CUSTOM_ICON_URL, customName: "ไฟหลัก", delay: 0, pendingTimeout: null },
+        { id: 2, name: "มอเตอร์ปั๊ม", state: false, label: "RELAY_02", pin: "D2", icon: CUSTOM_ICON_URL, customName: "มอเตอร์ปั๊ม", delay: 0, pendingTimeout: null },
+        { id: 3, name: "ระบายอากาศ", state: false, label: "RELAY_03", pin: "D3", icon: CUSTOM_ICON_URL, customName: "ระบายอากาศ", delay: 0, pendingTimeout: null },
+        { id: 4, name: "อุปกรณ์เสริม", state: false, label: "RELAY_04", pin: "D4", icon: CUSTOM_ICON_URL, customName: "อุปกรณ์เสริม", delay: 0, pendingTimeout: null }
+    ];
+
+    // Store custom names separately
+    let customNames = {
+        1: "ไฟหลัก",
+        2: "มอเตอร์ปั๊ม",
+        3: "ระบายอากาศ",
+        4: "อุปกรณ์เสริม"
+    };
+    
+    // Store delays
+    let relayDelays = {
+        1: 0,
+        2: 0,
+        3: 0,
+        4: 0
+    };
+    
+    let currentEditingRelay = null;
+    
+    // Auto-listening variables
+    let isAutoListening = true;
+    let recognition = null;
+    let restartTimeout = null;
+    
+    // HTTP URL Storage
+    let httpRelayUrls = {
+        1: { on: "http://192.168.1.40/toggle", off: "http://192.168.1.40/toggle" },
+        2: { on: "http://192.168.1.189/RELAY=ON", off: "http://192.168.1.189/RELAY=OFF" },
+        3: { on: "", off: "" },
+        4: { on: "", off: "" }
+    };
+    let httpBaseURL = "http://192.168.1.188";
+    let currentProtocol = 'websocket';
+    let ws = null;
+    let mqttClient = null;
+
+    // Load all settings
+    function loadStoredSettings() {
+        // Load custom names
+        const storedNames = localStorage.getItem('relayCustomNames');
+        if (storedNames) {
+            try {
+                const parsed = JSON.parse(storedNames);
+                customNames = parsed;
+                for (let i = 1; i <= 4; i++) {
+                    if (customNames[i]) {
+                        relays[i-1].name = customNames[i];
+                        relays[i-1].customName = customNames[i];
+                    }
+                }
+            } catch(e) { console.warn("Failed to parse custom names"); }
+        }
+        
+        // Load delays
+        const storedDelays = localStorage.getItem('relayDelays');
+        if (storedDelays) {
+            try {
+                const parsed = JSON.parse(storedDelays);
+                relayDelays = parsed;
+                for (let i = 1; i <= 4; i++) {
+                    relays[i-1].delay = relayDelays[i] || 0;
+                }
+            } catch(e) { console.warn("Failed to parse delays"); }
+        }
+        
+        // Load URLs
+        const storedUrls = localStorage.getItem('httpRelayUrls');
+        const storedBase = localStorage.getItem('httpBaseURL');
+        
+        if (storedUrls) {
+            try {
+                const parsed = JSON.parse(storedUrls);
+                for (let i = 1; i <= 4; i++) {
+                    if (parsed[i]) {
+                        httpRelayUrls[i] = { 
+                            on: parsed[i].on || "", 
+                            off: parsed[i].off || "" 
+                        };
+                    }
+                }
+            } catch(e) { console.warn("Failed to parse stored URLs"); }
+        }
+        
+        if (storedBase) httpBaseURL = storedBase;
+        
+        // Populate input fields
+        for (let i = 1; i <= 4; i++) {
+            const onInput = document.getElementById(`relay${i}-on`);
+            const offInput = document.getElementById(`relay${i}-off`);
+            const delayInput = document.getElementById(`relay${i}-delay`);
+            if (onInput) onInput.value = httpRelayUrls[i].on;
+            if (offInput) offInput.value = httpRelayUrls[i].off;
+            if (delayInput) delayInput.value = relayDelays[i] || 0;
+        }
+        
+        const baseInput = document.getElementById('http-base-url');
+        if (baseInput) baseInput.value = httpBaseURL;
+        
+        console.log("Loaded custom names:", customNames);
+        console.log("Loaded delays:", relayDelays);
+    }
+
+    // Save custom names
+    function saveCustomNames() {
+        localStorage.setItem('relayCustomNames', JSON.stringify(customNames));
+        console.log("Saved custom names:", customNames);
+    }
+    
+    // Save delays
+    function saveDelays() {
+        localStorage.setItem('relayDelays', JSON.stringify(relayDelays));
+    }
+    
+    // Save URLs and delays
+    function saveRelayUrls() {
+        for (let i = 1; i <= 4; i++) {
+            httpRelayUrls[i] = { 
+                on: document.getElementById(`relay${i}-on`).value.trim(), 
+                off: document.getElementById(`relay${i}-off`).value.trim() 
+            };
+            const delayInput = document.getElementById(`relay${i}-delay`);
+            if (delayInput) {
+                relayDelays[i] = parseFloat(delayInput.value) || 0;
+                relays[i-1].delay = relayDelays[i];
+            }
+        }
+        
+        const baseInput = document.getElementById('http-base-url');
+        if (baseInput && baseInput.value.trim()) {
+            httpBaseURL = baseInput.value.trim();
+        }
+        
+        localStorage.setItem('httpRelayUrls', JSON.stringify(httpRelayUrls));
+        localStorage.setItem('httpBaseURL', httpBaseURL);
+        saveDelays();
+        
+        showToastMessage("✅ บันทึก URL และหน่วงเวลาเรียบร้อย");
+        const statusDiv = document.getElementById('http-status');
+        if (statusDiv) statusDiv.innerHTML = '✅ บันทึกการตั้งค่าเรียบร้อย';
+    }
+
+    // Get HTTP URL
+    function getHttpUrl(relayId, state) {
+        const urls = httpRelayUrls[relayId];
+        if (state && urls.on && urls.on !== "") return urls.on;
+        if (!state && urls.off && urls.off !== "") return urls.off;
+        if (urls.on === urls.off && urls.on !== "") return urls.on;
+        const suffix = state ? "ONVIDEO" : "OFFVIDEO";
+        return `${httpBaseURL}/${suffix}`;
+    }
+
+    // Render relays with custom names and delay controls
+    function renderRelays() {
+        const grid = document.getElementById('relayGrid');
+        if (!grid) return;
+        
+        grid.innerHTML = '';
+        const colors = ['#ff4444', '#44ff44', '#4444ff', '#ffff44'];
+        
+        relays.forEach((relay, index) => {
+            const card = document.createElement('div');
+            card.className = `relay-card ${relay.state ? 'active' : ''}`;
+            card.dataset.id = relay.id;
+            
+            const displayName = customNames[relay.id] || relay.name;
+            const delayValue = relayDelays[relay.id] || 0;
+            
+            card.innerHTML = `
+                <button class="edit-name-btn" onclick="event.stopPropagation(); openNameModal(${relay.id}, '${displayName.replace(/'/g, "\\'")}')">
+                    <span>✏️</span> ตั้งชื่อ
+                </button>
+                <div class="relay-icon">
+                    <img src="${relay.icon}" alt="Relay ${relay.id}" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 100 100\'%3E%3Ccircle cx=\'50\' cy=\'50\' r=\'45\' fill=\'%2300ffff\' stroke=\'%2300aaff\' stroke-width=\'3\'/%3E%3Ctext x=\'50\' y=\'67\' text-anchor=\'middle\' fill=\'%23000\' font-size=\'40\' font-weight=\'bold\'%3E${relay.id}%3C/text%3E%3C/svg%3E'">
+                </div>
+                <div class="relay-number">RELAY ${relay.id}</div>
+                <div class="relay-name">${displayName}</div>
+                <div class="relay-label">${relay.label} (${relay.pin})</div>
+                <div class="delay-control">
+                    <label>⏱</label>
+                    <input type="number" id="delay-${relay.id}" min="0" max="60" step="0.5" value="${delayValue}" 
+                           onchange="updateRelayDelay(${relay.id}, this.value)" onclick="event.stopPropagation()">
+                    <span>วินาที</span>
+                </div>
+                <div class="relay-state ${relay.state ? 'state-on' : 'state-off'}">${relay.state ? 'ON' : 'OFF'}</div>
+            `;
+            card.onclick = (e) => {
+                if (!e.target.classList.contains('edit-name-btn') && 
+                    !e.target.closest('.edit-name-btn') &&
+                    !e.target.closest('.delay-control')) {
+                    toggleRelay(relay.id);
+                }
+            };
+            grid.appendChild(card);
+        });
+    }
+    
+    // Update relay delay
+    function updateRelayDelay(relayId, value) {
+        const delay = parseFloat(value) || 0;
+        relayDelays[relayId] = delay;
+        relays[relayId-1].delay = delay;
+        saveDelays();
+        showToastMessage(`ตั้งค่าหน่วงเวลา RELAY ${relayId} = ${delay} วินาที`);
+    }
+
+    // Modal functions
+    function openNameModal(relayId, currentName) {
+        currentEditingRelay = relayId;
+        const modal = document.getElementById('nameModal');
+        const input = document.getElementById('relayNameInput');
+        const modalTitle = document.getElementById('modalTitle');
+        
+        modalTitle.innerHTML = `ตั้งชื่อ RELAY ${relayId}`;
+        input.value = currentName;
+        modal.classList.add('active');
+    }
+    
+    function saveRelayName() {
+        const input = document.getElementById('relayNameInput');
+        const newName = input.value.trim();
+        
+        if (newName === "") {
+            showToastMessage("⚠️ กรุณาใส่ชื่อ");
+            return;
+        }
+        
+        // Update custom names
+        customNames[currentEditingRelay] = newName;
+        saveCustomNames();
+        
+        // Update relay object
+        const relay = relays.find(r => r.id === currentEditingRelay);
+        if (relay) {
+            relay.name = newName;
+            relay.customName = newName;
+        }
+        
+        renderRelays();
+        closeModal();
+        
+        // พูดตอบกลับด้วยชื่อใหม่
+        speakFeedback(`ตั้งชื่อ RELAY ${currentEditingRelay} เป็น ${newName} เรียบร้อย`);
+        showToastMessage(`✅ ตั้งชื่อ RELAY ${currentEditingRelay} เป็น "${newName}" เรียบร้อย`);
+        
+        // Update voice recognition keywords dynamically
+        updateVoiceKeywords();
+    }
+    
+    function deleteRelayName() {
+        delete customNames[currentEditingRelay];
+        saveCustomNames();
+        
+        const defaultNames = {
+            1: "ไฟหลัก",
+            2: "มอเตอร์ปั๊ม", 
+            3: "ระบายอากาศ",
+            4: "อุปกรณ์เสริม"
+        };
+        
+        const relay = relays.find(r => r.id === currentEditingRelay);
+        if (relay) {
+            relay.name = defaultNames[currentEditingRelay];
+            relay.customName = defaultNames[currentEditingRelay];
+        }
+        
+        renderRelays();
+        closeModal();
+        
+        speakFeedback(`ลบชื่อ RELAY ${currentEditingRelay} กลับเป็นชื่อเดิม`);
+        showToastMessage(`🗑️ ลบชื่อเรียบร้อย กลับเป็นชื่อเดิม`);
+        updateVoiceKeywords();
+    }
+    
+    function closeModal() {
+        const modal = document.getElementById('nameModal');
+        modal.classList.remove('active');
+        currentEditingRelay = null;
+    }
+    
+    // Update voice recognition keywords
+    function updateVoiceKeywords() {
+        console.log("Voice keywords updated with custom names:", customNames);
+    }
+    
+    // Toggle relay with delay
+    function toggleRelay(id) {
+        const relay = relays.find(r => r.id === id);
+        if (relay) {
+            updateRelayState(id, !relay.state);
+        }
+    }
+
+    // Update relay state with delay support
+    function updateRelayState(relayId, newState) {
+        const relay = relays.find(r => r.id === relayId);
+        if (!relay) return;
+        
+        // Clear existing timeout if any
+        if (relay.pendingTimeout) {
+            clearTimeout(relay.pendingTimeout);
+            relay.pendingTimeout = null;
+        }
+        
+        const delay = relayDelays[relayId] || 0;
+        const displayName = customNames[relayId] || relay.name;
+        
+        if (delay > 0) {
+            showToastMessage(`⏱ ${displayName} จะ${newState ? 'เปิด' : 'ปิด'} ใน ${delay} วินาที`);
+            speakFeedback(`หน่วงเวลา ${delay} วินาที ${displayName} จะ${newState ? 'เปิด' : 'ปิด'}`);
+            
+            relay.pendingTimeout = setTimeout(() => {
+                executeRelayCommand(relayId, newState);
+                relay.pendingTimeout = null;
+            }, delay * 1000);
+        } else {
+            executeRelayCommand(relayId, newState);
+        }
+    }
+    
+    function executeRelayCommand(relayId, newState) {
+        const relay = relays.find(r => r.id === relayId);
+        if (!relay || relay.state === newState) return;
+        
+        relay.state = newState;
+        renderRelays();
+        sendCommandToHardware(relayId, newState);
+        
+        const displayName = customNames[relayId] || relay.name;
+        const stateText = newState ? 'เปิด' : 'ปิด';
+        showToastMessage(`🔌 ${displayName} → ${stateText}`);
+        speakFeedback(`${displayName} ${stateText} แล้วเจ้านาย`);
+    }
+
+    // Send command to hardware
+    function sendCommandToHardware(relayId, state) {
+        if (currentProtocol === 'websocket' && ws && ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({ relay: relayId, state: state ? 'ON' : 'OFF', action: 'control' }));
+        } else if (currentProtocol === 'http') {
+            const url = getHttpUrl(relayId, state);
+            if (url && url !== "") {
+                fetch(url, { method: 'GET', mode: 'no-cors' })
+                    .catch(e => console.log("HTTP request sent:", url));
+            } else {
+                showToastMessage(`⚠️ ไม่มี URL สำหรับรีเลย์ ${relayId}`);
+            }
+        } else if (currentProtocol === 'mqtt' && mqttClient && mqttClient.isConnected()) {
+            mqttClient.send(`home/relay/${relayId}/set`, state ? 'ON' : 'OFF', 0, false);
+        }
+    }
+
+    // All relays on/off
+    function allRelaysOn() { 
+        relays.forEach(r => { if (!r.state) updateRelayState(r.id, true); }); 
+        showToastMessage("⚡ เปิดรีเลย์ทั้งหมด"); 
+        speakFeedback("เปิดรีเลย์ทั้งหมด");
+    }
+    
+    function allRelaysOff() { 
+        relays.forEach(r => { if (r.state) updateRelayState(r.id, false); }); 
+        showToastMessage("🔻 ปิดรีเลย์ทั้งหมด"); 
+        speakFeedback("ปิดรีเลย์ทั้งหมด");
+    }
+    
+    function syncStatus() { 
+        showToastMessage("🔄 SYNC"); 
+        if (currentProtocol === 'websocket' && ws && ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({ action: 'getStatus' }));
+        } else if (currentProtocol === 'mqtt' && mqttClient && mqttClient.isConnected()) {
+            mqttClient.send('home/relay/status/request', 'get');
+        }
+    }
+
+    // WebSocket connection
+    function connectWebSocket() {
+        const url = document.getElementById('ws-url').value;
+        if (!url) return;
+        if (ws) ws.close();
+        
+        ws = new WebSocket(url);
+        ws.onopen = () => { updateConnectionStatus(true, 'WebSocket Online'); document.getElementById('ws-status').innerHTML = '✅ เชื่อมต่อแล้ว'; };
+        ws.onmessage = (e) => { 
+            try { 
+                const data = JSON.parse(e.data); 
+                if (data.relay && data.state !== undefined) { 
+                    const relay = relays.find(r => r.id === data.relay); 
+                    if (relay && relay.state !== (data.state === 'ON' || data.state === true)) { 
+                        relay.state = (data.state === 'ON' || data.state === true); 
+                        renderRelays(); 
+                    } 
+                } 
+            } catch(e) {} 
+        };
+        ws.onclose = () => { updateConnectionStatus(false, 'WebSocket ปิด'); document.getElementById('ws-status').innerHTML = '❌ ตัดการเชื่อมต่อ'; };
+    }
+
+    function testHTTPConnection() {
+        const baseInput = document.getElementById('http-base-url');
+        if (baseInput && baseInput.value.trim()) httpBaseURL = baseInput.value.trim();
+        fetch(httpBaseURL, { method: 'HEAD', mode: 'no-cors' })
+            .then(() => { updateConnectionStatus(true, 'HTTP พร้อม'); document.getElementById('http-status').innerHTML = '✅ ฐานพร้อมใช้งาน'; })
+            .catch(() => { updateConnectionStatus(true, 'HTTP Active'); document.getElementById('http-status').innerHTML = '⚠️ ใช้งานตาม URL'; });
+    }
+
+    function connectMQTT() {
+        const broker = document.getElementById('mqtt-broker').value;
+        const port = parseInt(document.getElementById('mqtt-port').value);
+        const clientId = document.getElementById('mqtt-clientid').value || 'webclient_' + Date.now();
+        
+        if (mqttClient) try { mqttClient.disconnect(); } catch(e) {}
+        
+        mqttClient = new Paho.MQTT.Client(broker, port, clientId);
+        mqttClient.onConnectionLost = () => { updateConnectionStatus(false, 'MQTT Disconnected'); document.getElementById('mqtt-status').innerHTML = '❌ หลุด'; };
+        mqttClient.onMessageArrived = (msg) => {
+            const topic = msg.destinationName;
+            const payload = msg.payloadString;
+            const match = topic.match(/relay\/(\d+)/);
+            if (match) {
+                let rid = parseInt(match[1]);
+                let newState = payload === 'ON' || payload === '1';
+                let relay = relays.find(r => r.id === rid);
+                if (relay && relay.state !== newState) {
+                    relay.state = newState;
+                    renderRelays();
+                }
+            }
+        };
+        mqttClient.connect({ 
+            timeout: 5, 
+            onSuccess: () => { 
+                updateConnectionStatus(true, 'MQTT Online'); 
+                document.getElementById('mqtt-status').innerHTML = '✅ Connected';
+                for(let i = 1; i <= 4; i++) mqttClient.subscribe(`home/relay/${i}/state`);
+            }, 
+            onFailure: () => { updateConnectionStatus(false, 'MQTT ล้มเหลว'); document.getElementById('mqtt-status').innerHTML = '❌ เชื่อมต่อไม่สำเร็จ'; } 
+        });
+    }
+
+    function updateConnectionStatus(connected, message) {
+        const led = document.getElementById('connection-led');
+        const text = document.getElementById('connection-text');
+        if (connected) { led.classList.add('connected'); text.innerText = message; } 
+        else { led.classList.remove('connected'); text.innerText = message; }
+    }
+
+    function showToastMessage(msg) {
+        let toast = document.createElement('div');
+        toast.className = 'toast-message';
+        toast.innerText = msg;
+        document.body.appendChild(toast);
+        setTimeout(() => toast.remove(), 2000);
+    }
+    
+    function speakFeedback(text) { 
+        if ('speechSynthesis' in window) { 
+            window.speechSynthesis.cancel(); 
+            let u = new SpeechSynthesisUtterance(text); 
+            u.lang = 'th-TH'; 
+            u.rate = 0.9; 
+            window.speechSynthesis.speak(u); 
+        } 
+    }
+    
+    // Voice Command with custom names support
+    function processVoiceCommand(cmd) {
+        if (!cmd) return;
+        let text = cmd.toLowerCase().trim();
+        
+        const displayDiv = document.getElementById('voiceCommandDisplay');
+        if (displayDiv) {
+            displayDiv.innerHTML = `🎤 คำสั่ง: "${cmd}"`;
+            setTimeout(() => {
+                if (displayDiv) displayDiv.innerHTML = '';
+            }, 3000);
+        }
+        
+        // All on/off
+        if (text.includes("เปิดทั้งหมด") || text.includes("all on") || text.includes("เปิดทุกอย่าง")) { 
+            allRelaysOn(); 
+            return; 
+        }
+        if (text.includes("ปิดทั้งหมด") || text.includes("all off") || text.includes("ปิดทุกอย่าง")) { 
+            allRelaysOff(); 
+            return; 
+        }
+        
+        // Scene commands
+        if (text.includes("กลางคืน") || text.includes("night mode")) {
+            updateRelayState(1, true);
+            updateRelayState(3, true);
+            updateRelayState(2, false);
+            updateRelayState(4, false);
+            speakFeedback("เปิดโหมดกลางคืน");
+            return;
+        }
+        
+        if (text.includes("ประหยัด") || text.includes("eco")) {
+            updateRelayState(1, true);
+            updateRelayState(2, false);
+            updateRelayState(3, false);
+            updateRelayState(4, false);
+            speakFeedback("เปิดโหมดประหยัดพลังงาน");
+            return;
+        }
+        
+        // Check custom names
+        let relayId = null;
+        for (let i = 1; i <= 4; i++) {
+            const customName = customNames[i] ? customNames[i].toLowerCase() : "";
+            if (customName && text.includes(customName)) {
+                relayId = i;
+                break;
+            }
+        }
+        
+        // Default keywords if no custom match
+        if (!relayId) {
+            const defaultKeywords = {
+                1: ["ไฟหลัก", "ไฟบ้าน", "main light", "light"],
+                2: ["มอเตอร์", "ปั๊ม", "motor", "pump"],
+                3: ["ระบายอากาศ", "พัดลม", "fan", "ventilation"],
+                4: ["อุปกรณ์เสริม", "เสริม", "auxiliary", "accessory"]
+            };
+            for (let i = 1; i <= 4; i++) {
+                if (defaultKeywords[i].some(kw => text.includes(kw))) {
+                    relayId = i;
+                    break;
+                }
+            }
+        }
+        
+        // Try number
+        if (!relayId) {
+            let match = text.match(/\b([1-4])\b/);
+            if (match) relayId = parseInt(match[1]);
+        }
+        
+        if (!relayId) { 
+            speakFeedback("ไม่พบอุปกรณ์ที่ต้องการควบคุมครับเจ้านาย"); 
+            showToastMessage("ไม่พบอุปกรณ์ที่ต้องการควบคุมครับเจ้านาย");
+            return; 
+        }
+        
+        // Determine action
+        let isOn = text.includes("เปิด") || text.includes("turn on") || text.includes("เปิดใช้งาน");
+        let isOff = text.includes("ปิด") || text.includes("turn off") || text.includes("ปิดการทำงาน");
+        
+        let targetState;
+        if (isOn && !isOff) targetState = true;
+        else if (isOff && !isOn) targetState = false;
+        else targetState = !relays.find(r => r.id === relayId).state;
+        
+        let relay = relays.find(r => r.id === relayId);
+        let displayName = customNames[relayId] || relay.name;
+        
+        if (relay && relay.state !== targetState) {
+            updateRelayState(relayId, targetState);
+        } else if (relay) {
+            speakFeedback(`${displayName} อยู่ในสถานะ ${relay.state ? "เปิด" : "ปิด"} อยู่แล้ว`);
+        }
+    }
+    
+    // Auto-listening setup
+    function setupAutoListening() {
+        if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            recognition = new SpeechRecognition();
+            recognition.lang = 'th-TH';
+            recognition.interimResults = false;
+            recognition.continuous = true;
+            
+            recognition.onstart = () => {
+                const voiceBadge = document.getElementById('voiceBadge');
+                const voiceLed = document.getElementById('voice-led');
+                const voiceStatus = document.getElementById('voice-status-text');
+                if (voiceBadge) voiceBadge.classList.add('listening');
+                if (voiceLed) voiceLed.classList.add('listening');
+                if (voiceStatus) voiceStatus.innerHTML = '🎧 AI กำลังฟัง...';
+                console.log("Auto-listening started");
+            };
+            
+            recognition.onresult = (e) => {
+                for (let i = e.resultIndex; i < e.results.length; i++) {
+                    const transcript = e.results[i][0].transcript;
+                    if (e.results[i].isFinal) {
+                        console.log("Voice command:", transcript);
+                        processVoiceCommand(transcript);
+                    }
+                }
+            };
+            
+            recognition.onerror = (e) => {
+                console.log("Recognition error:", e.error);
+                if (e.error === 'not-allowed') {
+                    speakFeedback("ไม่อนุญาตให้ใช้ไมโครโฟน กรุณาอนุญาตการเข้าใช้งานไมค์ครับเจ้านาย");
+                }
+            };
+            
+            recognition.onend = () => {
+                const voiceBadge = document.getElementById('voiceBadge');
+                const voiceLed = document.getElementById('voice-led');
+                const voiceStatus = document.getElementById('voice-status-text');
+                if (voiceBadge) voiceBadge.classList.remove('listening');
+                if (voiceLed) voiceLed.classList.remove('listening');
+                if (voiceStatus) voiceStatus.innerHTML = '🤖 นายชด พร้อมทำงาน (ฟังตลอด)';
+                
+                if (isAutoListening) {
+                    if (restartTimeout) clearTimeout(restartTimeout);
+                    restartTimeout = setTimeout(() => {
+                        try {
+                            recognition.start();
+                        } catch(e) {
+                            console.log("Restart error:", e);
+                        }
+                    }, 1000);
+                }
+            };
+            
+            if (isAutoListening) {
+                try {
+                    recognition.start();
+                } catch(e) {
+                    console.log("Start error:", e);
+                }
+            }
+        } else {
+            console.log("Speech recognition not supported");
+            const voiceStatus = document.getElementById('voice-status-text');
+            if (voiceStatus) voiceStatus.innerHTML = '⚠️ เบราว์เซอร์ไม่รองรับ Voice';
+        }
+    }
+    
+    function toggleAutoListen() {
+        isAutoListening = !isAutoListening;
+        const voiceBadge = document.getElementById('voiceBadge');
+        const voiceHint = document.getElementById('voiceHint');
+        const voiceLed = document.getElementById('voice-led');
+        const voiceStatus = document.getElementById('voice-status-text');
+        
+        if (isAutoListening) {
+            if (recognition) {
+                try {
+                    recognition.start();
+                } catch(e) {
+                    setupAutoListening();
+                }
+            } else {
+                setupAutoListening();
+            }
+            if (voiceBadge) voiceBadge.classList.remove('listening');
+            if (voiceHint) voiceHint.innerHTML = '🎤 นายชด ฟังอัตโนมัติ (ฟังตลอด)';
+            if (voiceStatus) voiceStatus.innerHTML = '🤖 นายชด พร้อมทำงาน (ฟังตลอด)';
+            speakFeedback("เปิดโหมดฟังอัตโนมัติแล้วครับเจ้านาย");
+        } else {
+            if (recognition) {
+                try {
+                    recognition.stop();
+                } catch(e) {}
+            }
+            if (voiceBadge) voiceBadge.classList.remove('listening');
+            if (voiceLed) voiceLed.classList.remove('listening');
+            if (voiceHint) voiceHint.innerHTML = '🎤 AI ปิดฟัง (แตะเพื่อเปิด)';
+            if (voiceStatus) voiceStatus.innerHTML = '🔇 ปิดการฟังอัตโนมัติ';
+            speakFeedback("ปิดโหมดฟังอัตโนมัติแล้วครับเจ้านาย");
+        }
+        showToastMessage(isAutoListening ? "เปิดฟังอัตโนมัติ 5 วินาที" : "ปิดฟังอัตโนมัติ");
+    }
+
+    // Protocol switcher
+    document.querySelectorAll('.proto-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('.proto-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            currentProtocol = btn.dataset.proto;
+            document.querySelectorAll('.connection-config').forEach(c => c.classList.remove('active'));
+            document.getElementById(`${currentProtocol}-config`).classList.add('active');
+        });
+    });
+    
+    // Event listeners
+    const allOnBtn = document.getElementById('allOnBtn');
+    const allOffBtn = document.getElementById('allOffBtn');
+    const syncBtn = document.getElementById('syncBtn');
+    
+    if (allOnBtn) allOnBtn.addEventListener('click', allRelaysOn);
+    if (allOffBtn) allOffBtn.addEventListener('click', allRelaysOff);
+    if (syncBtn) syncBtn.addEventListener('click', syncStatus);
+    
+    function updateTimestamp() { 
+        const tsElem = document.getElementById('timestamp');
+        if (tsElem) tsElem.innerHTML = `⏱️ ${new Date().toLocaleTimeString('th-TH')}`;
+    }
+    
+    // Initialize
+    loadStoredSettings();
+    renderRelays();
+    updateTimestamp();
+    setInterval(updateTimestamp, 1000);
+    
+    // Start auto-listening
+    setTimeout(() => {
+        setupAutoListening();
+    }, 1000);
+    
+    console.log("✅ AI HUD Ready - Auto-listening enabled (5 seconds continuous)");
+    console.log("✅ Delay control for each relay");
+    console.log("✅ AI remembers custom names and responds with them");
+</script>
+</body>
+</html>
