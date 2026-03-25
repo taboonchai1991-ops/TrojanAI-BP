@@ -1,1 +1,699 @@
 
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+}
+
+body {
+    min-height: 100vh;
+    background: radial-gradient(circle at 20% 30%, #0a0f1e, #03050b);
+    font-family: 'Segoe UI', 'Orbitron', 'Courier New', monospace;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 16px;
+    position: relative;
+    overflow-x: hidden;
+}
+
+body::before {
+    content: "";
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: repeating-linear-gradient(
+        0deg,
+        rgba(0, 255, 255, 0.03) 0px,
+        rgba(0, 255, 255, 0.03) 2px,
+        transparent 2px,
+        transparent 6px
+    );
+    pointer-events: none;
+    z-index: 1;
+}
+
+.container {
+    max-width: 1400px;
+    width: 100%;
+    z-index: 2;
+}
+
+.hud-header {
+    text-align: center;
+    margin-bottom: 24px;
+    position: relative;
+}
+
+.title {
+    font-size: 2.2rem;
+    font-weight: 700;
+    background: linear-gradient(135deg, #ff0000, #ff4444, #ff0000);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    letter-spacing: 3px;
+    text-shadow: 0 0 30px rgba(255, 0, 0, 0.5);
+    animation: pulseRed 2s infinite;
+}
+
+@keyframes pulseRed {
+    0%, 100% { opacity: 1; text-shadow: 0 0 20px rgba(255, 0, 0, 0.5); }
+    50% { opacity: 0.9; text-shadow: 0 0 35px rgba(255, 0, 0, 0.8); }
+}
+
+.subtitle {
+    color: #ff8888;
+    font-size: 0.7rem;
+    letter-spacing: 2px;
+    margin-top: 6px;
+    opacity: 0.9;
+    word-break: break-word;
+}
+
+.version-badge {
+    display: inline-block;
+    background: rgba(255, 68, 68, 0.3);
+    padding: 2px 8px;
+    border-radius: 20px;
+    font-size: 0.6rem;
+    color: #ff8888;
+    margin-top: 8px;
+}
+
+.connection-panel {
+    background: rgba(10, 20, 30, 0.75);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(0, 255, 255, 0.4);
+    border-radius: 24px;
+    padding: 16px;
+    margin-bottom: 20px;
+}
+
+.protocol-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 16px;
+    justify-content: center;
+}
+
+.proto-btn {
+    background: rgba(0, 30, 40, 0.8);
+    border: 1px solid #0ff;
+    color: #0ff;
+    padding: 8px 16px;
+    border-radius: 40px;
+    cursor: pointer;
+    font-family: monospace;
+    font-size: 0.85rem;
+    transition: all 0.3s;
+    flex: 0 1 auto;
+}
+
+.proto-btn.active {
+    background: #0ff;
+    color: #000;
+    box-shadow: 0 0 15px #0ff;
+}
+
+.proto-btn:active {
+    transform: scale(0.96);
+}
+
+.connection-config {
+    display: none;
+    margin-top: 16px;
+    padding: 12px;
+    background: rgba(0, 0, 0, 0.5);
+    border-radius: 20px;
+}
+
+.connection-config.active {
+    display: block;
+}
+
+.config-input {
+    background: rgba(0, 30, 40, 0.8);
+    border: 1px solid #0ff;
+    color: #0ff;
+    padding: 10px 12px;
+    border-radius: 12px;
+    margin: 5px 0;
+    font-family: monospace;
+    width: 100%;
+    font-size: 0.9rem;
+}
+
+.config-input:focus {
+    outline: none;
+    box-shadow: 0 0 10px #0ff;
+}
+
+.connect-btn {
+    background: #0ff;
+    color: #000;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 30px;
+    cursor: pointer;
+    font-weight: bold;
+    margin-top: 10px;
+    width: 100%;
+    font-size: 0.9rem;
+    transition: all 0.2s;
+}
+
+.connect-btn:active {
+    transform: scale(0.97);
+}
+
+.telegram-status {
+    background: rgba(0, 40, 50, 0.5);
+    border-radius: 12px;
+    padding: 10px;
+    margin-top: 10px;
+    font-size: 0.75rem;
+    text-align: center;
+}
+
+.telegram-message {
+    color: #0ff;
+    margin-top: 8px;
+    font-size: 0.7rem;
+    word-break: break-word;
+}
+
+.relay-url-table {
+    margin-top: 12px;
+    border-collapse: collapse;
+    width: 100%;
+    font-size: 0.7rem;
+    display: block;
+    overflow-x: auto;
+}
+
+.relay-url-table th, .relay-url-table td {
+    border: 1px solid rgba(0, 255, 255, 0.3);
+    padding: 8px;
+    text-align: left;
+    color: #0ff;
+    vertical-align: middle;
+}
+
+.relay-url-table th {
+    background: rgba(0, 40, 50, 0.6);
+}
+
+.url-input-small {
+    background: rgba(0, 30, 40, 0.8);
+    border: 1px solid #0ff;
+    color: #0ff;
+    padding: 6px 8px;
+    border-radius: 8px;
+    font-family: monospace;
+    width: 100%;
+    font-size: 0.7rem;
+}
+
+.delay-input {
+    width: 80px;
+    background: rgba(0, 30, 40, 0.8);
+    border: 1px solid #0ff;
+    color: #0ff;
+    padding: 4px 6px;
+    border-radius: 8px;
+    text-align: center;
+}
+
+.ai-status {
+    background: rgba(10, 20, 30, 0.7);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(0, 255, 255, 0.4);
+    border-radius: 20px;
+    padding: 12px 20px;
+    margin-bottom: 20px;
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.status-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: monospace;
+    font-size: 0.8rem;
+}
+
+.status-led {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #f00;
+    box-shadow: 0 0 6px #f00;
+    animation: blink 1.5s infinite;
+}
+
+.status-led.connected {
+    background: #0f0;
+    box-shadow: 0 0 8px #0f0;
+    animation: none;
+}
+
+.status-led.listening {
+    background: #ff0;
+    box-shadow: 0 0 8px #ff0;
+    animation: pulse 0.5s infinite;
+}
+
+.status-text {
+    color: #0ff;
+    font-weight: bold;
+    font-size: 0.75rem;
+}
+
+.relay-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 16px;
+    margin-bottom: 30px;
+}
+
+.relay-card {
+    background: rgba(0, 20, 30, 0.7);
+    backdrop-filter: blur(10px);
+    border-radius: 24px;
+    padding: 16px 12px;
+    text-align: center;
+    border: 1px solid rgba(0, 255, 255, 0.3);
+    transition: all 0.2s ease;
+    position: relative;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.relay-card.active {
+    border-color: #0ff;
+    box-shadow: 0 0 20px rgba(0, 255, 255, 0.5);
+    background: rgba(0, 60, 70, 0.8);
+}
+
+.relay-card:active {
+    transform: scale(0.97);
+}
+
+.relay-icon {
+    width: 70px;
+    height: 70px;
+    margin: 0 auto 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.relay-icon img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    filter: drop-shadow(0 0 8px rgba(0, 255, 255, 0.5));
+    transition: all 0.3s ease;
+}
+
+.relay-card.active .relay-icon img {
+    filter: drop-shadow(0 0 15px rgba(0, 255, 255, 0.8));
+    animation: iconPulse 0.5s ease-in-out;
+}
+
+@keyframes iconPulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+}
+
+.relay-number {
+    font-size: 1rem;
+    font-weight: bold;
+    color: #0ff;
+    text-shadow: 0 0 6px #0ff;
+    letter-spacing: 1px;
+}
+
+.relay-name {
+    font-size: 1rem;
+    color: #b0f0ff;
+    margin: 8px 0;
+    font-weight: bold;
+    word-break: break-word;
+}
+
+.relay-label {
+    font-size: 0.7rem;
+    color: #6c9;
+    margin: 4px 0;
+}
+
+.relay-state {
+    font-size: 0.9rem;
+    margin: 8px 0 0;
+    padding: 5px;
+    border-radius: 30px;
+    background: rgba(0,0,0,0.5);
+    display: inline-block;
+    width: 80px;
+    font-weight: bold;
+    transition: all 0.2s;
+}
+
+.relay-state.pending {
+    color: #ff0 !important;
+    animation: pulse 0.5s infinite;
+    background: rgba(255, 255, 0, 0.2);
+}
+
+.state-off {
+    color: #ff6a6a;
+}
+
+.state-on {
+    color: #6aff6a;
+}
+
+.delay-control {
+    margin-top: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    font-size: 0.65rem;
+    background: rgba(0,0,0,0.3);
+    padding: 4px 8px;
+    border-radius: 20px;
+}
+
+.delay-control label {
+    color: #0ff;
+}
+
+.delay-control input {
+    width: 50px;
+    background: rgba(0, 30, 40, 0.8);
+    border: 1px solid #0ff;
+    color: #0ff;
+    padding: 2px 4px;
+    border-radius: 8px;
+    text-align: center;
+    font-size: 0.65rem;
+}
+
+.edit-name-btn {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background: rgba(0, 255, 255, 0.2);
+    border: 1px solid #0ff;
+    color: #0ff;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 20px;
+    font-size: 0.65rem;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    z-index: 10;
+}
+
+.edit-name-btn:active {
+    background: #0ff;
+    color: #000;
+    transform: scale(0.95);
+}
+
+.command-panel {
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(8px);
+    border-radius: 28px;
+    padding: 18px;
+    border: 1px solid rgba(0, 255, 255, 0.4);
+    margin-top: 16px;
+}
+
+.btn-group {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 12px;
+    margin: 15px 0;
+}
+
+.hud-btn {
+    background: rgba(0, 30, 40, 0.9);
+    border: 1px solid #0ff;
+    color: #0ff;
+    padding: 10px 18px;
+    border-radius: 40px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: 0.15s;
+    font-family: monospace;
+    font-size: 0.85rem;
+    backdrop-filter: blur(4px);
+    flex: 1;
+    min-width: 100px;
+}
+
+.hud-btn:active {
+    background: #0ff;
+    color: #000;
+    transform: scale(0.97);
+}
+
+.hud-btn.danger {
+    border-color: #f66;
+    color: #f66;
+}
+
+.hud-btn.danger:active {
+    background: #f66;
+    color: #000;
+}
+
+.voice-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    background: #0a1a1f;
+    padding: 10px 20px;
+    border-radius: 50px;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: 1px solid #0ff;
+    width: 100%;
+    max-width: 320px;
+    margin: 10px auto 0;
+}
+
+.voice-badge.listening {
+    background: #0ff22a;
+    border-color: #ff0;
+    animation: pulse 0.5s infinite;
+}
+
+.voice-badge:active {
+    transform: scale(0.98);
+}
+
+#voiceHint {
+    font-size: 0.7rem;
+    text-align: center;
+    word-break: break-word;
+}
+
+.note-text {
+    font-size: 0.65rem;
+    color: #6c9;
+    margin-top: 5px;
+    text-align: center;
+}
+
+.modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(8px);
+    z-index: 1000;
+    justify-content: center;
+    align-items: center;
+}
+
+.modal.active {
+    display: flex;
+}
+
+.modal-content {
+    background: rgba(10, 30, 40, 0.95);
+    border: 2px solid #0ff;
+    border-radius: 28px;
+    padding: 24px;
+    width: 90%;
+    max-width: 400px;
+    text-align: center;
+}
+
+.modal-content h3 {
+    color: #0ff;
+    margin-bottom: 20px;
+    font-size: 1.3rem;
+}
+
+.modal-input {
+    background: rgba(0, 30, 40, 0.8);
+    border: 1px solid #0ff;
+    color: #0ff;
+    padding: 12px;
+    border-radius: 12px;
+    width: 100%;
+    font-size: 1rem;
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+.modal-buttons {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+}
+
+.modal-btn {
+    padding: 10px 20px;
+    border-radius: 30px;
+    border: none;
+    cursor: pointer;
+    font-weight: bold;
+    flex: 1;
+}
+
+.modal-btn.save {
+    background: #0ff;
+    color: #000;
+}
+
+.modal-btn.delete {
+    background: #f66;
+    color: #000;
+}
+
+.modal-btn.cancel {
+    background: #333;
+    color: #fff;
+}
+
+.modal-btn:active {
+    transform: scale(0.97);
+}
+
+.shortcut-badge {
+    background: rgba(0, 255, 255, 0.15);
+    border-radius: 12px;
+    padding: 8px 12px;
+    margin-top: 10px;
+    font-size: 0.7rem;
+    text-align: center;
+    border: 1px solid rgba(0, 255, 255, 0.3);
+}
+
+.shortcut-badge span {
+    color: #ff0;
+    font-weight: bold;
+    display: inline-block;
+    background: rgba(0,0,0,0.5);
+    padding: 2px 8px;
+    border-radius: 20px;
+    margin: 0 2px;
+}
+
+.footer {
+    text-align: center;
+    margin-top: 20px;
+    padding: 16px;
+    color: #6c9;
+    font-size: 0.65rem;
+    border-top: 1px solid rgba(0, 255, 255, 0.2);
+}
+
+.netlify-badge {
+    display: inline-block;
+    margin-left: 10px;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(1.2); }
+}
+
+@keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+}
+
+@media (max-width: 550px) {
+    .title { font-size: 1.6rem; }
+    .relay-card { padding: 12px 8px; }
+    .relay-icon { width: 55px; height: 55px; }
+    .relay-name { font-size: 0.85rem; }
+    .relay-label { font-size: 0.6rem; }
+    .hud-btn { padding: 8px 12px; font-size: 0.75rem; min-width: 80px; }
+    .status-text { font-size: 0.65rem; }
+    .edit-name-btn { font-size: 0.55rem; padding: 3px 6px; }
+    .relay-state { width: 70px; font-size: 0.8rem; }
+}
+
+.toast-message {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0, 255, 255, 0.2);
+    backdrop-filter: blur(12px);
+    border: 1px solid #0ff;
+    color: #0ff;
+    padding: 10px 20px;
+    border-radius: 40px;
+    font-family: monospace;
+    font-weight: bold;
+    z-index: 1001;
+    font-size: 0.8rem;
+    max-width: 90vw;
+    text-align: center;
+    pointer-events: none;
+}
+
+.scrollable-table {
+    overflow-x: auto;
+    display: block;
+    width: 100%;
+}
+
+.relay-color {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    display: inline-block;
+    margin-right: 6px;
+}
+
+.voice-status {
+    font-size: 0.7rem;
+    color: #ff0;
+    margin-top: 8px;
+    text-align: center;
+}
