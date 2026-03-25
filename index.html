@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="th">
 <head>
@@ -6,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes, viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>AI HUD Relay Control | TrojanAI (BP) | Telegram Bot Control</title>
+    <title>AI HUD Relay Control | TrojanAI (BP) | Telegram + HTTP API</title>
     
     <!-- MQTT Library -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.1/mqttws31.min.js"></script>
@@ -666,13 +665,8 @@
             text-align: center;
         }
         
-        .interim-text {
-            color: #aaa;
-            font-style: italic;
-        }
-        
         .telegram-chat {
-            max-height: 200px;
+            max-height: 150px;
             overflow-y: auto;
             background: rgba(0, 0, 0, 0.3);
             border-radius: 12px;
@@ -692,7 +686,7 @@
 <div class="container">
     <div class="hud-header">
         <div class="title">⚡ TrojanAI (BP) ⚡</div>
-        <div class="subtitle">▣ TELEGRAM BOT | SMART VOICE | DELAY CONTROL | CUSTOM NAMES ▣</div>
+        <div class="subtitle">▣ TELEGRAM + HTTP API | SMART VOICE | DELAY CONTROL | CUSTOM NAMES ▣</div>
     </div>
 
     <!-- Connection Panel -->
@@ -706,7 +700,7 @@
         <!-- Telegram Bot Config -->
         <div id="telegram-config" class="connection-config active">
             <input type="text" id="telegram-token" class="config-input" placeholder="Bot Token (จาก @BotFather)" value="">
-            <input type="text" id="telegram-chatid" class="config-input" placeholder="Chat ID (optional)" value="">
+            <input type="text" id="telegram-chatid" class="config-input" placeholder="Chat ID (จะได้อัตโนมัติ)" value="">
             <button class="connect-btn" onclick="connectTelegram()">🤖 เชื่อมต่อ Telegram Bot</button>
             <div class="telegram-status">
                 <div id="telegram-status-text" style="color:#0ff;">⚠️ ยังไม่ได้เชื่อมต่อ</div>
@@ -723,12 +717,11 @@
             </div>
             <div id="http-status" style="color:#0ff; margin-bottom: 12px; font-size:0.7rem;"></div>
             
-            <div style="font-size:0.7rem; color:#0ff; margin-bottom: 8px;">⚙️ กำหนด URL เฉพาะรายรีเลย์</div>
+            <div style="font-size:0.7rem; color:#0ff; margin-bottom: 8px;">⚙️ กำหนด URL เฉพาะรายรีเลย์ (Telegram จะใช้ URL เหล่านี้)</div>
             <div class="scrollable-table">
             <table class="relay-url-table" id="relay-url-table">
                 <thead>
-                    <tr><th style="width: 15%;">รีเลย์</th><th style="width: 35%;">URL เปิด (ON)</th><th style="width: 35%;">URL ปิด (OFF)</th><th style="width: 15%;">หน่วงเวลา(วินาที)</th></tr>
-                </thead>
+                    <tr><th style="width: 15%;">รีเลย์</th><th style="width: 35%;">URL เปิด (ON)</th><th style="width: 35%;">URL ปิด (OFF)</th><th style="width: 15%;">หน่วงเวลา(วินาที)</th></thead>
                 <tbody>
                     <tr><td><span class="relay-color" style="background: #ff4444;"></span> RELAY 1</td>
                     <td><input type="text" id="relay1-on" class="url-input-small" value="http://192.168.1.40/toggle"></td>
@@ -750,6 +743,7 @@
             </table>
             </div>
             <button class="connect-btn" onclick="saveRelayUrls()">💾 บันทึก URL และหน่วงเวลา</button>
+            <div class="note-text" style="margin-top: 8px;">📌 Telegram Bot จะใช้ URL เหล่านี้ในการควบคุมรีเลย์ผ่าน HTTP API</div>
         </div>
 
         <!-- MQTT Config -->
@@ -784,7 +778,7 @@
         </div>
         <div class="voice-status" id="voiceCommandDisplay"></div>
         <div class="note-text">💡 แตะที่ปุ่ม ✏️ เพื่อเปลี่ยนชื่อรีเลย์ | AI จะจำชื่อใหม่และตอบกลับด้วยชื่อนั้น</div>
-        <div class="note-text">🤖 สั่งงานผ่าน Telegram: พิมพ์ /relay1_on, /relay1_off, /status, /help</div>
+        <div class="note-text">🤖 สั่งงานผ่าน Telegram: พิมพ์ /relay1_on, /relay1_off, /status หรือพิมพ์ภาษาไทย เช่น "เปิดไฟหลัก"</div>
     </div>
 </div>
 
@@ -989,7 +983,30 @@
         if (statusDiv) statusDiv.innerHTML = '✅ บันทึกการตั้งค่าเรียบร้อย';
     }
 
-    // ==================== TELEGRAM FUNCTIONS ====================
+    // ==================== HTTP API FUNCTIONS (ควบคุมฮาร์ดแวร์) ====================
+    function getHttpUrl(relayId, state) {
+        const urls = httpRelayUrls[relayId];
+        if (state && urls.on && urls.on !== "") return urls.on;
+        if (!state && urls.off && urls.off !== "") return urls.off;
+        if (urls.on === urls.off && urls.on !== "") return urls.on;
+        const suffix = state ? "ONVIDEO" : "OFFVIDEO";
+        return `${httpBaseURL}/${suffix}`;
+    }
+    
+    function sendHttpCommand(relayId, state) {
+        const url = getHttpUrl(relayId, state);
+        if (url && url !== "") {
+            fetch(url, { method: 'GET', mode: 'no-cors' })
+                .catch(e => console.log("HTTP request sent:", url));
+            console.log(`HTTP ${state ? 'ON' : 'OFF'} -> ${url}`);
+            return true;
+        } else {
+            showToastMessage(`⚠️ ไม่มี URL สำหรับรีเลย์ ${relayId}`);
+            return false;
+        }
+    }
+
+    // ==================== TELEGRAM FUNCTIONS (รับคำสั่ง + ส่งผ่าน HTTP) ====================
     function connectTelegram() {
         const tokenInput = document.getElementById('telegram-token');
         const chatIdInput = document.getElementById('telegram-chatid');
@@ -1013,14 +1030,14 @@
                 if (data.ok) {
                     isTelegramConnected = true;
                     updateConnectionStatus(true, `Telegram: @${data.result.username}`);
-                    document.getElementById('telegram-status-text').innerHTML = `✅ เชื่อมต่อแล้ว: @${data.result.username}`;
+                    document.getElementById('telegram-status-text').innerHTML = `✅ เชื่อมต่อแล้ว: @${data.result.username}<br>📡 ใช้ HTTP API ควบคุมรีเลย์`;
                     showToastMessage(`✅ เชื่อมต่อ Telegram: @${data.result.username}`);
                     
                     // Start polling for updates
                     startTelegramPolling();
                     
                     // Send welcome message
-                    sendTelegramMessage("🤖 TrojanAI (BP) เชื่อมต่อแล้ว! พิมพ์ /help เพื่อดูคำสั่ง");
+                    sendTelegramMessage("🤖 *TrojanAI (BP) เชื่อมต่อแล้ว!*\n\n✅ ควบคุมรีเลย์ผ่าน HTTP API\n📌 พิมพ์ /help เพื่อดูคำสั่ง");
                 } else {
                     isTelegramConnected = false;
                     updateConnectionStatus(false, 'Telegram: Invalid Token');
@@ -1059,6 +1076,7 @@
                                     telegramChatId = chatId;
                                     safeLocalStorageSet('telegramChatId', telegramChatId);
                                     document.getElementById('telegram-chatid').value = telegramChatId;
+                                    sendTelegramMessage("✅ บันทึก Chat ID เรียบร้อยแล้ว!", chatId);
                                 }
                                 
                                 // Process command
@@ -1083,7 +1101,7 @@
         // Help command
         if (cmd === '/help' || cmd === '/start') {
             const helpMsg = `🤖 *TrojanAI (BP) Commands*\n\n` +
-                `/status - ตรวจสอบสถานะรีเลย์ทั้งหมด\n` +
+                `*ควบคุมรีเลย์:*\n` +
                 `/relay1_on - เปิดรีเลย์ 1\n` +
                 `/relay1_off - ปิดรีเลย์ 1\n` +
                 `/relay2_on - เปิดรีเลย์ 2\n` +
@@ -1091,21 +1109,27 @@
                 `/relay3_on - เปิดรีเลย์ 3\n` +
                 `/relay3_off - ปิดรีเลย์ 3\n` +
                 `/relay4_on - เปิดรีเลย์ 4\n` +
-                `/relay4_off - ปิดรีเลย์ 4\n` +
+                `/relay4_off - ปิดรีเลย์ 4\n\n` +
+                `*กลุ่ม:*\n` +
                 `/all_on - เปิดทั้งหมด\n` +
-                `/all_off - ปิดทั้งหมด\n` +
-                `หรือพิมพ์ชื่อรีเลย์ที่คุณตั้งไว้ เช่น "เปิดไฟหลัก"`;
+                `/all_off - ปิดทั้งหมด\n\n` +
+                `*ข้อมูล:*\n` +
+                `/status - ตรวจสอบสถานะ\n` +
+                `/help - แสดงคำสั่งนี้\n\n` +
+                `*ภาษาไทย:*\n` +
+                `พิมพ์ "เปิดไฟหลัก" หรือ "ปิดมอเตอร์" ได้เลย!`;
             
             sendTelegramMessage(helpMsg, chatId);
             return;
         }
         
-        // Status command
+        // Status command - ดึงสถานะจากระบบ
         if (cmd === '/status') {
             let statusMsg = "📊 *สถานะรีเลย์:*\n\n";
             relays.forEach(relay => {
                 const displayNameRelay = customNames[relay.id] || relay.name;
-                statusMsg += `🔌 *${displayNameRelay}*: ${relay.state ? '✅ เปิด' : '❌ ปิด'}\n`;
+                const statusIcon = relay.state ? '✅ เปิด' : '❌ ปิด';
+                statusMsg += `🔌 *${displayNameRelay}*: ${statusIcon}\n`;
             });
             sendTelegramMessage(statusMsg, chatId);
             return;
@@ -1124,7 +1148,7 @@
             return;
         }
         
-        // Relay commands
+        // Relay commands with HTTP API
         const relayMatch = cmd.match(/\/relay([1-4])_(on|off)/);
         if (relayMatch) {
             const relayId = parseInt(relayMatch[1]);
@@ -1132,8 +1156,20 @@
             const targetState = action === 'on';
             const displayNameRelay = customNames[relayId] || relays[relayId-1].name;
             
-            updateRelayState(relayId, targetState);
-            sendTelegramMessage(`${targetState ? '✅ เปิด' : '🔻 ปิด'} ${displayNameRelay} เรียบร้อย`, chatId);
+            // ส่งคำสั่งผ่าน HTTP API
+            const success = sendHttpCommand(relayId, targetState);
+            if (success) {
+                // อัพเดทสถานะใน UI
+                const relay = relays.find(r => r.id === relayId);
+                if (relay) {
+                    relay.state = targetState;
+                    renderRelays();
+                }
+                sendTelegramMessage(`${targetState ? '✅ เปิด' : '🔻 ปิด'} ${displayNameRelay} เรียบร้อย`, chatId);
+                showToastMessage(`🤖 Telegram: ${targetState ? 'เปิด' : 'ปิด'} ${displayNameRelay}`);
+            } else {
+                sendTelegramMessage(`❌ ไม่สามารถ${targetState ? 'เปิด' : 'ปิด'} ${displayNameRelay} ได้ (ไม่มี URL)`, chatId);
+            }
             return;
         }
         
@@ -1166,8 +1202,20 @@
             if (relayId) {
                 const isOn = cmd.includes("เปิด");
                 const displayNameRelay = customNames[relayId] || relays[relayId-1].name;
-                updateRelayState(relayId, isOn);
-                sendTelegramMessage(`${isOn ? '✅ เปิด' : '🔻 ปิด'} ${displayNameRelay} เรียบร้อย`, chatId);
+                
+                // ส่งคำสั่งผ่าน HTTP API
+                const success = sendHttpCommand(relayId, isOn);
+                if (success) {
+                    const relay = relays.find(r => r.id === relayId);
+                    if (relay) {
+                        relay.state = isOn;
+                        renderRelays();
+                    }
+                    sendTelegramMessage(`${isOn ? '✅ เปิด' : '🔻 ปิด'} ${displayNameRelay} เรียบร้อย`, chatId);
+                    showToastMessage(`🤖 Telegram: ${isOn ? 'เปิด' : 'ปิด'} ${displayNameRelay}`);
+                } else {
+                    sendTelegramMessage(`❌ ไม่สามารถ${isOn ? 'เปิด' : 'ปิด'} ${displayNameRelay} ได้`, chatId);
+                }
                 return;
             }
         }
@@ -1199,16 +1247,6 @@
             clearInterval(telegramPollingInterval);
             telegramPollingInterval = null;
         }
-    }
-
-    // Get HTTP URL
-    function getHttpUrl(relayId, state) {
-        const urls = httpRelayUrls[relayId];
-        if (state && urls.on && urls.on !== "") return urls.on;
-        if (!state && urls.off && urls.off !== "") return urls.off;
-        if (urls.on === urls.off && urls.on !== "") return urls.on;
-        const suffix = state ? "ONVIDEO" : "OFFVIDEO";
-        return `${httpBaseURL}/${suffix}`;
     }
 
     // Update relay delay
@@ -1407,48 +1445,34 @@
         const relay = relays.find(r => r.id === relayId);
         if (!relay || relay.state === newState) return;
         
-        relay.state = newState;
-        renderRelays();
-        sendCommandToHardware(relayId, newState);
+        // ส่งคำสั่งผ่าน HTTP API
+        const success = sendHttpCommand(relayId, newState);
         
-        const displayName = customNames[relayId] || relay.name;
-        const stateText = newState ? 'เปิด' : 'ปิด';
-        showToastMessage(`🔌 ${displayName} → ${stateText}`);
-        speakFeedback(`${displayName} ${stateText} แล้ว`);
-        
-        // Send Telegram notification if connected
-        if (isTelegramConnected && telegramChatId) {
-            sendTelegramMessage(`🔌 ${displayName} ${stateText} แล้ว`);
-        }
-    }
-
-    // Send command to hardware
-    function sendCommandToHardware(relayId, state) {
-        if (currentProtocol === 'http') {
-            const url = getHttpUrl(relayId, state);
-            if (url && url !== "") {
-                fetch(url, { method: 'GET', mode: 'no-cors' })
-                    .catch(e => console.log("HTTP request sent:", url));
-            } else {
-                showToastMessage(`⚠️ ไม่มี URL สำหรับรีเลย์ ${relayId}`);
-            }
-        } else if (currentProtocol === 'mqtt' && mqttClient && mqttClient.isConnected()) {
-            mqttClient.send(`home/relay/${relayId}/set`, state ? 'ON' : 'OFF', 0, false);
-        }
-        // Telegram protocol - just send command to hardware via HTTP
-        else if (currentProtocol === 'telegram') {
-            // Use HTTP as fallback for hardware control when using Telegram protocol
-            const url = getHttpUrl(relayId, state);
-            if (url && url !== "") {
-                fetch(url, { method: 'GET', mode: 'no-cors' })
-                    .catch(e => console.log("HTTP request sent:", url));
+        if (success) {
+            relay.state = newState;
+            renderRelays();
+            
+            const displayName = customNames[relayId] || relay.name;
+            const stateText = newState ? 'เปิด' : 'ปิด';
+            showToastMessage(`🔌 ${displayName} → ${stateText}`);
+            speakFeedback(`${displayName} ${stateText} แล้ว`);
+            
+            // Send Telegram notification if connected
+            if (isTelegramConnected && telegramChatId) {
+                sendTelegramMessage(`🔌 ${displayName} ${stateText} แล้ว`);
             }
         }
     }
 
     // All relays on/off
     function allRelaysOn() { 
-        relays.forEach(r => { if (!r.state) updateRelayState(r.id, true); }); 
+        relays.forEach(r => { 
+            if (!r.state) {
+                const success = sendHttpCommand(r.id, true);
+                if (success) r.state = true;
+            }
+        }); 
+        renderRelays();
         showToastMessage("⚡ เปิดรีเลย์ทั้งหมด"); 
         speakFeedback("เปิดรีเลย์ทั้งหมด");
         if (isTelegramConnected && telegramChatId) {
@@ -1457,7 +1481,13 @@
     }
     
     function allRelaysOff() { 
-        relays.forEach(r => { if (r.state) updateRelayState(r.id, false); }); 
+        relays.forEach(r => { 
+            if (r.state) {
+                const success = sendHttpCommand(r.id, false);
+                if (success) r.state = false;
+            }
+        }); 
+        renderRelays();
         showToastMessage("🔻 ปิดรีเลย์ทั้งหมด"); 
         speakFeedback("ปิดรีเลย์ทั้งหมด");
         if (isTelegramConnected && telegramChatId) {
@@ -1466,10 +1496,10 @@
     }
     
     function syncStatus() { 
-        showToastMessage("🔄 SYNC"); 
+        showToastMessage("🔄 SYNC - ดึงสถานะจาก HTTP API ไม่ได้ (ใช้เฉพาะ WebSocket/MQTT)"); 
     }
 
-    // HTTP connection
+    // HTTP connection test
     function testHTTPConnection() {
         const baseInput = document.getElementById('http-base-url');
         if (baseInput && baseInput.value.trim()) httpBaseURL = baseInput.value.trim();
@@ -1637,7 +1667,7 @@
         }
     }
     
-    // Auto-listening setup with permission check
+    // Auto-listening setup
     function setupAutoListening() {
         if (!('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) {
             console.log("Speech recognition not supported");
@@ -1834,12 +1864,10 @@
         setupAutoListening();
     }, 1000);
     
-    console.log("✅ TrojanAI (BP) - ระบบพร้อมทำงาน");
-    console.log("✅ หัวข้อสีแดง");
-    console.log("✅ Telegram Bot Support - ใส่ Token แล้วกดเชื่อมต่อ");
-    console.log("✅ Auto-listening enabled");
-    console.log("✅ Delay control for each relay");
-    console.log("✅ AI remembers custom names");
+    console.log("✅ TrojanAI (BP) - Telegram + HTTP API");
+    console.log("✅ Telegram รับคำสั่งและส่งผ่าน HTTP API ไปยัง ESP8266");
+    console.log("✅ ตั้งชื่อรีเลย์ได้, หน่วงเวลาแยกรีเลย์");
+    console.log("✅ AI ฟังเสียงอัตโนมัติ");
 </script>
 </body>
 </html>
