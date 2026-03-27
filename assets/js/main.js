@@ -1,6 +1,6 @@
 // ==================== TELEGRAM CONFIGURATION ====================
-const TELEGRAM_BOT_TOKEN = '__BOT_TOKEN__';
-const TELEGRAM_CHAT_ID = '__CHAT_ID__';
+const TELEGRAM_BOT_TOKEN = '8745849047:AAHtomrQushuFs4GRHZRycwu4Ppe58_hJLs';
+const TELEGRAM_CHAT_ID = '8540965094';
 
 // ==================== CONFIGURATION ====================
 const CUSTOM_ICON_URL = "assets/icons/relay-icon.svg";
