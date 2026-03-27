@@ -5,16 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes, viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="description" content="TrojanAI (BP) - ระบบควบคุมรีเลย์ 6 ช่องผ่าน Telegram Bot + HTTP API + Voice Command">
-    <meta name="keywords" content="Telegram Bot, ESP8266, IoT, Relay Control, Voice Command, HTTP API, Netlify">
+    <meta name="description" content="TrojanAI (BP) - ระบบควบคุมรีเลย์ 6 ช่องผ่าน HTTP API + Voice Command + Telegram Alert">
+    <meta name="keywords" content="ESP8266, IoT, Relay Control, Voice Command, HTTP API, Netlify, Telegram Bot">
     <meta name="author" content="TrojanAI (BP)">
     <meta name="robots" content="index, follow">
-    <title>TrojanAI (BP) | 6-Channel Relay Control</title>
+    <title>TrojanAI (BP) | 6‑Relay HTTP + Voice + Telegram</title>
     
-    <!-- MQTT Library -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.1/mqttws31.min.js"></script>
-    
-    <link rel="icon" type="image/x-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='45' fill='%23ff4444'/%3E%3Ctext x='50' y='67' text-anchor='middle' fill='white' font-size='40' font-weight='bold'%3ET%3C/text%3E%3C/svg%3E">
+    <link rel="icon" type="image/x-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='45' fill='%23ff4444'/%3E%3Ctext x='50' y='67' text-anchor='middle' fill='white' font-size='40' font-weight='bold'%3E6%3C/text%3E%3C/svg%3E">
     
     <style>
         * {
@@ -111,49 +108,6 @@
             margin-bottom: 20px;
         }
 
-        .protocol-buttons {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-            margin-bottom: 16px;
-            justify-content: center;
-        }
-
-        .proto-btn {
-            background: rgba(0, 30, 40, 0.8);
-            border: 1px solid #0ff;
-            color: #0ff;
-            padding: 8px 16px;
-            border-radius: 40px;
-            cursor: pointer;
-            font-family: monospace;
-            font-size: 0.85rem;
-            transition: all 0.3s;
-            flex: 0 1 auto;
-        }
-
-        .proto-btn.active {
-            background: #0ff;
-            color: #000;
-            box-shadow: 0 0 15px #0ff;
-        }
-
-        .proto-btn:active {
-            transform: scale(0.96);
-        }
-
-        .connection-config {
-            display: none;
-            margin-top: 16px;
-            padding: 12px;
-            background: rgba(0, 0, 0, 0.5);
-            border-radius: 20px;
-        }
-
-        .connection-config.active {
-            display: block;
-        }
-
         .config-input {
             background: rgba(0, 30, 40, 0.8);
             border: 1px solid #0ff;
@@ -187,22 +141,6 @@
 
         .connect-btn:active {
             transform: scale(0.97);
-        }
-
-        .telegram-status {
-            background: rgba(0, 40, 50, 0.5);
-            border-radius: 12px;
-            padding: 10px;
-            margin-top: 10px;
-            font-size: 0.75rem;
-            text-align: center;
-        }
-
-        .telegram-message {
-            color: #0ff;
-            margin-top: 8px;
-            font-size: 0.7rem;
-            word-break: break-word;
         }
 
         .relay-url-table {
@@ -272,12 +210,6 @@
             width: 10px;
             height: 10px;
             border-radius: 50%;
-            background: #f00;
-            box-shadow: 0 0 6px #f00;
-            animation: blink 1.5s infinite;
-        }
-
-        .status-led.connected {
             background: #0f0;
             box-shadow: 0 0 8px #0f0;
             animation: none;
@@ -619,26 +551,6 @@
             transform: scale(0.97);
         }
 
-        .shortcut-badge {
-            background: rgba(0, 255, 255, 0.15);
-            border-radius: 12px;
-            padding: 8px 12px;
-            margin-top: 10px;
-            font-size: 0.7rem;
-            text-align: center;
-            border: 1px solid rgba(0, 255, 255, 0.3);
-        }
-
-        .shortcut-badge span {
-            color: #ff0;
-            font-weight: bold;
-            display: inline-block;
-            background: rgba(0,0,0,0.5);
-            padding: 2px 8px;
-            border-radius: 20px;
-            margin: 0 2px;
-        }
-
         .footer {
             text-align: center;
             margin-top: 20px;
@@ -648,84 +560,9 @@
             border-top: 1px solid rgba(0, 255, 255, 0.2);
         }
 
-        /* Login Overlay */
-        .login-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.95);
-            backdrop-filter: blur(12px);
-            z-index: 2000;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            transition: all 0.3s;
-        }
-
-        .login-modal {
-            background: rgba(10, 30, 40, 0.95);
-            border: 2px solid #0ff;
-            border-radius: 28px;
-            padding: 32px;
-            width: 90%;
-            max-width: 380px;
-            text-align: center;
-            box-shadow: 0 0 30px rgba(0, 255, 255, 0.3);
-        }
-
-        .login-modal h2 {
-            color: #0ff;
-            margin-bottom: 24px;
-            font-size: 1.8rem;
-            letter-spacing: 2px;
-        }
-
-        .login-modal input {
-            width: 100%;
-            padding: 12px;
-            background: rgba(0, 30, 40, 0.8);
-            border: 1px solid #0ff;
-            color: #0ff;
-            border-radius: 40px;
-            font-size: 1rem;
-            text-align: center;
-            margin-bottom: 20px;
-            outline: none;
-        }
-
-        .login-modal button {
-            background: #0ff;
-            color: #000;
-            border: none;
-            padding: 10px 24px;
-            border-radius: 40px;
-            font-weight: bold;
-            cursor: pointer;
-            width: 100%;
-            font-size: 1rem;
-            transition: 0.2s;
-        }
-
-        .login-modal button:active {
-            transform: scale(0.97);
-        }
-
-        .login-error {
-            color: #ff6666;
-            margin-top: 12px;
-            font-size: 0.8rem;
-        }
-
         @keyframes pulse {
             0%, 100% { opacity: 1; transform: scale(1); }
             50% { opacity: 0.5; transform: scale(1.2); }
-        }
-
-        @keyframes blink {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.3; }
         }
 
         @media (max-width: 550px) {
@@ -780,111 +617,105 @@
             margin-top: 8px;
             text-align: center;
         }
-
-        /* Logout button */
-        .logout-btn {
-            position: fixed;
-            bottom: 15px;
-            right: 15px;
-            background: rgba(0,0,0,0.6);
-            color: #0ff;
-            border: 1px solid #0ff;
-            padding: 6px 12px;
-            border-radius: 30px;
-            font-size: 0.7rem;
-            cursor: pointer;
-            z-index: 1000;
-            backdrop-filter: blur(4px);
-            transition: 0.2s;
+        
+        .telegram-panel {
+            margin-top: 12px;
+            padding: 10px;
+            border-top: 1px solid rgba(0, 255, 255, 0.3);
+            text-align: center;
         }
-        .logout-btn:active {
-            transform: scale(0.95);
-            background: #0ff;
-            color: #000;
+        
+        .telegram-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(0, 100, 150, 0.3);
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.7rem;
+            color: #0ff;
         }
     </style>
 </head>
 <body>
-
-<!-- Login Overlay -->
-<div id="loginOverlay" class="login-overlay">
-    <div class="login-modal">
-        <h2>🔐 TrojanAI (BP)</h2>
-        <input type="password" id="passwordInput" placeholder="กรอกรหัสผ่าน" autofocus>
-        <button id="loginBtn">เข้าสู่ระบบ</button>
-        <div id="loginError" class="login-error"></div>
-    </div>
-</div>
-
-<div class="container" style="display: none;" id="mainContainer">
+<div class="container">
     <div class="hud-header">
         <div class="title">⚡ TrojanAI (BP) ⚡</div>
-        <div class="subtitle">▣ 6-RELAY | TELEGRAM + HTTP API | VOICE + KEYBOARD ▣</div>
-        <div class="version-badge">v2.1.0 | เพิ่ม 2 รีเลย์ | Netlify</div>
+        <div class="subtitle">▣ 6‑RELAY | HTTP API | VOICE AI | TELEGRAM ALERT ▣</div>
+        <div class="version-badge">v3.2.0 | 6‑Relay Ready | Telegram Integration</div>
     </div>
 
-    <!-- Connection Panel -->
+    <!-- HTTP API Configuration Panel -->
     <div class="connection-panel">
-        <div class="protocol-buttons">
-            <button class="proto-btn active" data-proto="telegram">🤖 Telegram Bot</button>
-            <button class="proto-btn" data-proto="http">🌐 HTTP API</button>
-            <button class="proto-btn" data-proto="mqtt">📡 MQTT Broker</button>
+        <div style="margin-bottom: 8px;">
+            <input type="text" id="http-base-url" class="config-input" placeholder="Base URL (IP หลัก)" value="http://192.168.1.188">
+            <button class="connect-btn" onclick="testHTTPConnection()">📡 ทดสอบ Base URL</button>
         </div>
-
-        <!-- Telegram Bot Config -->
-        <div id="telegram-config" class="connection-config active">
-            <input type="text" id="telegram-token" class="config-input" placeholder="Bot Token (จาก @BotFather)" value="">
-            <input type="text" id="telegram-chatid" class="config-input" placeholder="Chat ID (จะได้อัตโนมัติ)" value="">
-            <button class="connect-btn" onclick="connectTelegram()">🤖 เชื่อมต่อ Telegram Bot</button>
-            <div class="telegram-status">
-                <div id="telegram-status-text" style="color:#0ff;">⚠️ ยังไม่ได้เชื่อมต่อ</div>
-                <div id="telegram-last-message" class="telegram-message"></div>
-            </div>
-            <div class="shortcut-badge">
-                ⌨️ <span>คีย์ลัดใน Telegram:</span> กด <span>1-6</span> เปิด, กดซ้ำปิด | <span>0</span> = ปิดทั้งหมด | <span>9</span> = เปิดทั้งหมด
-            </div>
+        <div id="http-status" style="color:#0ff; margin-bottom: 12px; font-size:0.7rem;"></div>
+        
+        <div style="font-size:0.7rem; color:#0ff; margin-bottom: 8px;">⚙️ กำหนด URL เฉพาะรายรีเลย์ (Voice / UI จะใช้ URL เหล่านี้)</div>
+        <div class="scrollable-table">
+        <table class="relay-url-table" id="relay-url-table">
+            <thead>
+                <tr><th style="width: 12%;">รีเลย์</th><th style="width: 34%;">URL เปิด (ON)</th><th style="width: 34%;">URL ปิด (OFF)</th><th style="width: 20%;">หน่วงเวลา(วินาที)</th></tr>
+            </thead>
+            <tbody>
+                <tr><td><span class="relay-color" style="background: #ff4444;"></span> RELAY 1</td>
+                    <td><input type="text" id="relay1-on" class="url-input-small" value="http://192.168.1.40/toggle"></td>
+                    <td><input type="text" id="relay1-off" class="url-input-small" value="http://192.168.1.40/toggle"></td>
+                    <td><input type="number" id="relay1-delay" class="delay-input" min="0" max="60" value="0" step="0.5"></td>
+                </tr>
+                <tr><td><span class="relay-color" style="background: #44ff44;"></span> RELAY 2</td>
+                    <td><input type="text" id="relay2-on" class="url-input-small" value="http://192.168.1.189/RELAY=ON"></td>
+                    <td><input type="text" id="relay2-off" class="url-input-small" value="http://192.168.1.189/RELAY=OFF"></td>
+                    <td><input type="number" id="relay2-delay" class="delay-input" min="0" max="60" value="0" step="0.5"></td>
+                </tr>
+                <tr><td><span class="relay-color" style="background: #4444ff;"></span> RELAY 3</td>
+                    <td><input type="text" id="relay3-on" class="url-input-small" value=""></td>
+                    <td><input type="text" id="relay3-off" class="url-input-small" value=""></td>
+                    <td><input type="number" id="relay3-delay" class="delay-input" min="0" max="60" value="0" step="0.5"></td>
+                </tr>
+                <tr><td><span class="relay-color" style="background: #ffff44;"></span> RELAY 4</td>
+                    <td><input type="text" id="relay4-on" class="url-input-small" value=""></td>
+                    <td><input type="text" id="relay4-off" class="url-input-small" value=""></td>
+                    <td><input type="number" id="relay4-delay" class="delay-input" min="0" max="60" value="0" step="0.5"></td>
+                </tr>
+                <tr><td><span class="relay-color" style="background: #ff88ff;"></span> RELAY 5</td>
+                    <td><input type="text" id="relay5-on" class="url-input-small" value=""></td>
+                    <td><input type="text" id="relay5-off" class="url-input-small" value=""></td>
+                    <td><input type="number" id="relay5-delay" class="delay-input" min="0" max="60" value="0" step="0.5"></td>
+                </tr>
+                <tr><td><span class="relay-color" style="background: #88ff88;"></span> RELAY 6</td>
+                    <td><input type="text" id="relay6-on" class="url-input-small" value=""></td>
+                    <td><input type="text" id="relay6-off" class="url-input-small" value=""></td>
+                    <td><input type="number" id="relay6-delay" class="delay-input" min="0" max="60" value="0" step="0.5"></td>
+                </tr>
+            </tbody>
+        </table>
         </div>
-
-        <!-- HTTP API Config (6 relays) -->
-        <div id="http-config" class="connection-config">
-            <div style="margin-bottom: 8px;">
-                <input type="text" id="http-base-url" class="config-input" placeholder="Base URL (IP หลัก)" value="http://192.168.1.188">
-                <button class="connect-btn" onclick="testHTTPConnection()">📡 ทดสอบ Base URL</button>
+        <button class="connect-btn" onclick="saveRelayUrls()">💾 บันทึก URL และหน่วงเวลา</button>
+        
+        <!-- Telegram Status Panel -->
+        <div class="telegram-panel">
+            <div class="telegram-badge" id="telegramStatus">
+                <span>🤖</span> <span id="telegramStatusText">Telegram: พร้อมแจ้งเตือน</span>
             </div>
-            <div id="http-status" style="color:#0ff; margin-bottom: 12px; font-size:0.7rem;"></div>
-            <div style="font-size:0.7rem; color:#0ff; margin-bottom: 8px;">⚙️ กำหนด URL เฉพาะรายรีเลย์ (Telegram จะใช้ URL เหล่านี้)</div>
-            <div class="scrollable-table">
-            <table class="relay-url-table" id="relay-url-table">
-                <thead><tr><th>รีเลย์</th><th>URL เปิด (ON)</th><th>URL ปิด (OFF)</th><th>หน่วงเวลา(วินาที)</th></tr></thead>
-                <tbody id="relay-url-tbody">
-                    <!-- 6 rows will be generated dynamically by JS -->
-                </tbody>
-            </table>
-            </div>
-            <button class="connect-btn" onclick="saveRelayUrls()">💾 บันทึก URL และหน่วงเวลา</button>
-            <div class="note-text">📌 Telegram Bot จะใช้ URL เหล่านี้ในการควบคุมรีเลย์ผ่าน HTTP API</div>
+            <div class="note-text" style="margin-top: 5px;">📢 ทุกการควบคุมรีเลย์จะแจ้งเตือนผ่าน Telegram (BOT_TOKEN อยู่ใน Environment)</div>
         </div>
-
-        <!-- MQTT Config -->
-        <div id="mqtt-config" class="connection-config">
-            <input type="text" id="mqtt-broker" class="config-input" placeholder="broker.emqx.io" value="broker.emqx.io">
-            <input type="text" id="mqtt-port" class="config-input" placeholder="Port" value="8084">
-            <input type="text" id="mqtt-clientid" class="config-input" placeholder="Client ID" value="webclient_hud">
-            <button class="connect-btn" onclick="connectMQTT()">📶 เชื่อมต่อ MQTT</button>
-            <div id="mqtt-status" style="color:#0ff; margin-top:8px; font-size:0.7rem;"></div>
-        </div>
+        
+        <div class="note-text" style="margin-top: 8px;">📌 Voice Command & UI จะใช้ URL เหล่านี้ในการควบคุมรีเลย์ 6 ช่องผ่าน HTTP API</div>
     </div>
 
     <div class="ai-status">
-        <div class="status-item"><span id="connection-led" class="status-led"></span><span class="status-text" id="connection-text">DISCONNECTED</span></div>
-        <div class="status-item"><span id="voice-led" class="status-led"></span><span class="status-text" id="voice-status-text">🤖 AI พร้อมทำงาน</span></div>
+        <div class="status-item"><span id="connection-led" class="status-led"></span><span class="status-text" id="connection-text">ระบบพร้อมทำงาน (HTTP)</span></div>
+        <div class="status-item"><span id="voice-led" class="status-led"></span><span class="status-text" id="voice-status-text">🤖 AI พร้อมฟังเสียง</span></div>
         <div class="status-item"><span id="timestamp" class="status-text">⏱️ --:--:--</span></div>
     </div>
 
     <div class="relay-grid" id="relayGrid"></div>
 
     <div class="command-panel">
-        <div style="text-align: center; color:#0ff; font-size:0.9rem;">🎙️ SMART VOICE ASSISTANT</div>
+        <div style="text-align: center; color:#0ff; font-size:0.9rem;">🎙️ SMART VOICE ASSISTANT (6 รีเลย์)</div>
         <div class="btn-group">
             <button class="hud-btn" id="allOnBtn">🔘 ALL ON</button>
             <button class="hud-btn danger" id="allOffBtn">⛔ ALL OFF</button>
@@ -892,17 +723,18 @@
         </div>
         <div style="display: flex; justify-content: center;">
             <div class="voice-badge" id="voiceBadge" onclick="toggleAutoListen()">
-                <span>🎤</span><span id="voiceHint">🤖 AI ฟังอัตโนมัติ (ฟังตลอด)</span>
+                <span>🎤</span><span id="voiceHint">🎤 แตะเพื่อเปิดฟัง (ฟังตลอด)</span>
             </div>
         </div>
         <div class="voice-status" id="voiceCommandDisplay"></div>
         <div class="note-text">💡 แตะที่ปุ่ม ✏️ เพื่อเปลี่ยนชื่อรีเลย์ | AI จะจำชื่อใหม่และตอบกลับด้วยชื่อนั้น</div>
-        <div class="note-text">🤖 Telegram คีย์ลัด: กด <span style="color:#ff0;">1-6</span> เปิด, กดซ้ำปิด | <span style="color:#ff0;">0</span> = ปิดทั้งหมด | <span style="color:#ff0;">9</span> = เปิดทั้งหมด</div>
+        <div class="note-text">🔊 พูด "เปิดไฟหลัก" หรือ "ปิดมอเตอร์ปั๊ม" หรือ "เปิดทั้งหมด" / "ปิดทั้งหมด"</div>
     </div>
     
     <div class="footer">
-        <p>TrojanAI (BP) | 6-Channel IoT Relay Control | MIT License</p>
-        <p>🚀 Deployed on Netlify | รองรับ 6 รีเลย์</p>
+        <p>TrojanAI (BP) | 6‑Relay IoT Control | ESP8266 Ready | Telegram Alert Integration</p>
+        <p>🔧 ควบคุมผ่าน HTTP API + Voice | ตั้งชื่อรีเลย์และหน่วงเวลาได้</p>
+        <p>🚀 Deployed on Netlify | 🤖 Telegram Bot Active</p>
     </div>
 </div>
 
@@ -919,324 +751,318 @@
     </div>
 </div>
 
-<!-- Logout Button -->
-<div class="logout-btn" id="logoutBtn">🚪 ออกจากระบบ</div>
-
 <script>
-    // ==================== CONFIGURATION 6 RELAYS ====================
+    // ==================== TELEGRAM CONFIGURATION ====================
+    // BOT_TOKEN และ CHAT_ID จะถูก inject ผ่าน Environment Variables (GitHub Secrets)
+    // ในการ Deploy จะถูกแทนที่ด้วยค่าจริงผ่าน GitHub Actions
+    const TELEGRAM_BOT_TOKEN = '__BOT_TOKEN__';  // จะถูกแทนที่ด้วย Secret
+    const TELEGRAM_CHAT_ID = '__CHAT_ID__';      // จะถูกแทนที่ด้วย Secret
+    
+    // ==================== CONFIGURATION ====================
     const CUSTOM_ICON_URL = "https://od.lk/s/N18yODE1OTE2NTlf/cre.ico";
-    const VERSION = "2.1.0";
+    const VERSION = "3.2.0";
     const RELAY_COUNT = 6;
     
-    // Relay Data
+    // Relay Data (6 ช่อง)
     const relays = [];
-    let customNames = {};
-    let relayDelays = {};
-    let httpRelayUrls = {};
-    let httpBaseURL = "http://192.168.1.188";
-    let currentProtocol = 'telegram';
-    let mqttClient = null;
-
-    // Initialize arrays for 6 relays
-    const defaultNames = {1:"ไฟหลัก",2:"มอเตอร์ปั๊ม",3:"ระบายอากาศ",4:"อุปกรณ์เสริม",5:"โซลาร์เซลล์",6:"ไฟสนาม"};
     for (let i = 1; i <= RELAY_COUNT; i++) {
-        relays.push({ id: i, name: defaultNames[i], state: false, label: `RELAY_0${i}`, pin: `D${i}`, icon: CUSTOM_ICON_URL, customName: defaultNames[i], delay: 0, pendingTimeout: null });
-        customNames[i] = defaultNames[i];
-        relayDelays[i] = 0;
-        httpRelayUrls[i] = { on: "", off: "" };
+        relays.push({ id: i, name: `รีเลย์ ${i}`, state: false, label: `RELAY_0${i}`, pin: `D${i}`, icon: CUSTOM_ICON_URL, customName: `รีเลย์ ${i}`, delay: 0, pendingTimeout: null });
     }
     
-    // Telegram variables
-    let telegramToken = "";
-    let telegramChatId = "";
-    let telegramUpdateOffset = 0;
-    let telegramPollingInterval = null;
-    let isTelegramConnected = false;
-    let lastNumberPress = { number: null, timestamp: 0, timeout: null };
+    let customNames = { 1: "ไฟหลัก", 2: "มอเตอร์ปั๊ม", 3: "ระบายอากาศ", 4: "อุปกรณ์เสริม", 5: "ไฟสวน", 6: "เครื่องกรองน้ำ" };
+    let relayDelays = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0 };
+    let currentEditingRelay = null;
     
-    // Voice
-    let isAutoListening = true;
+    // Auto-listening variables
+    let isAutoListening = false;
     let recognition = null;
     let errorCount = 0;
-
-    // ==================== UTILITIES ====================
-    function safeLocalStorageSet(key, value) { try { localStorage.setItem(key, value); return true; } catch(e) { showToastMessage("⚠️ พื้นที่เก็บข้อมูลเต็ม"); return false; } }
+    
+    // HTTP URL Storage (6 ช่อง)
+    let httpRelayUrls = {
+        1: { on: "http://192.168.1.40/toggle", off: "http://192.168.1.40/toggle" },
+        2: { on: "http://192.168.1.189/RELAY=ON", off: "http://192.168.1.189/RELAY=OFF" },
+        3: { on: "", off: "" },
+        4: { on: "", off: "" },
+        5: { on: "", off: "" },
+        6: { on: "", off: "" }
+    };
+    let httpBaseURL = "http://192.168.1.188";
+    
+    // Flag เพื่อป้องกันการส่ง Telegram ซ้ำ
+    let lastTelegramMessage = "";
+    let lastTelegramTime = 0;
+    
+    // ==================== TELEGRAM FUNCTIONS ====================
+    function isTelegramConfigured() {
+        return TELEGRAM_BOT_TOKEN && TELEGRAM_BOT_TOKEN !== '__BOT_TOKEN__' && 
+               TELEGRAM_CHAT_ID && TELEGRAM_CHAT_ID !== '__CHAT_ID__';
+    }
+    
+    async function sendTelegramAlert(message, relayName, action) {
+        if (!isTelegramConfigured()) {
+            console.log("⚠️ Telegram not configured");
+            return false;
+        }
+        
+        // ป้องกันการส่งข้อความซ้ำใน 2 วินาที
+        const now = Date.now();
+        const msgKey = `${relayName}_${action}`;
+        if (lastTelegramMessage === msgKey && now - lastTelegramTime < 2000) {
+            return false;
+        }
+        
+        lastTelegramMessage = msgKey;
+        lastTelegramTime = now;
+        
+        const fullMessage = `🔌 *TrojanAI (BP) - Relay Control*\n\n` +
+                           `📡 *อุปกรณ์:* ${relayName}\n` +
+                           `⚡ *สถานะ:* ${action === 'ON' ? '✅ เปิด' : '❌ ปิด'}\n` +
+                           `⏰ *เวลา:* ${new Date().toLocaleString('th-TH')}\n\n` +
+                           `🤖 ระบบควบคุมอัจฉริยะ TrojanAI`;
+        
+        const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
+        
+        try {
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    chat_id: TELEGRAM_CHAT_ID,
+                    text: fullMessage,
+                    parse_mode: 'Markdown'
+                })
+            });
+            const result = await response.json();
+            if (result.ok) {
+                console.log(`✅ Telegram alert sent: ${relayName} -> ${action}`);
+                updateTelegramStatus(true);
+                return true;
+            } else {
+                console.error("Telegram error:", result);
+                updateTelegramStatus(false);
+                return false;
+            }
+        } catch (error) {
+            console.error("Failed to send Telegram:", error);
+            updateTelegramStatus(false);
+            return false;
+        }
+    }
+    
+    function updateTelegramStatus(isConnected) {
+        const statusEl = document.getElementById('telegramStatusText');
+        if (statusEl) {
+            if (!isTelegramConfigured()) {
+                statusEl.innerHTML = '⚠️ Telegram: ไม่ได้กำหนดค่า (ใช้ GitHub Secrets)';
+                statusEl.style.color = '#ffaa44';
+            } else if (isConnected) {
+                statusEl.innerHTML = '✅ Telegram: พร้อมแจ้งเตือน';
+                statusEl.style.color = '#6aff6a';
+            } else {
+                statusEl.innerHTML = '⚠️ Telegram: เกิดข้อผิดพลาดในการส่ง';
+                statusEl.style.color = '#ff6a6a';
+            }
+        }
+    }
+    
+    // ==================== UTILITY FUNCTIONS ====================
+    function safeLocalStorageSet(key, value) {
+        try { localStorage.setItem(key, value); return true; } catch(e) { console.error("localStorage error:", e); showToastMessage("⚠️ พื้นที่เก็บข้อมูลเต็ม"); return false; }
+    }
     function escapeHtml(text) { const div = document.createElement('div'); div.textContent = text; return div.innerHTML; }
     function showToastMessage(msg) { let toast = document.createElement('div'); toast.className = 'toast-message'; toast.innerText = msg; document.body.appendChild(toast); setTimeout(() => toast.remove(), 2000); }
     function speakFeedback(text) { if ('speechSynthesis' in window) { window.speechSynthesis.cancel(); let u = new SpeechSynthesisUtterance(text); u.lang = 'th-TH'; u.rate = 0.9; window.speechSynthesis.speak(u); } }
     function updateConnectionStatus(connected, message) { const led = document.getElementById('connection-led'); const text = document.getElementById('connection-text'); if (connected) { led.classList.add('connected'); text.innerText = message; } else { led.classList.remove('connected'); text.innerText = message; } }
 
-    // ==================== LOAD/SAVE ====================
+    // ==================== LOAD/SAVE SETTINGS ====================
     function loadStoredSettings() {
         const storedNames = localStorage.getItem('relayCustomNames');
-        if (storedNames) { try { const parsed = JSON.parse(storedNames); customNames = parsed; for (let i = 1; i <= RELAY_COUNT; i++) if (customNames[i]) relays[i-1].name = customNames[i]; } catch(e) {} }
+        if (storedNames) { try { const parsed = JSON.parse(storedNames); customNames = parsed; for (let i = 1; i <= RELAY_COUNT; i++) { if (customNames[i]) { relays[i-1].name = customNames[i]; relays[i-1].customName = customNames[i]; } } } catch(e) {} }
         const storedDelays = localStorage.getItem('relayDelays');
-        if (storedDelays) { try { const parsed = JSON.parse(storedDelays); relayDelays = parsed; for (let i = 1; i <= RELAY_COUNT; i++) relays[i-1].delay = relayDelays[i] || 0; } catch(e) {} }
+        if (storedDelays) { try { const parsed = JSON.parse(storedDelays); relayDelays = parsed; for (let i = 1; i <= RELAY_COUNT; i++) { relays[i-1].delay = relayDelays[i] || 0; } } catch(e) {} }
         const storedUrls = localStorage.getItem('httpRelayUrls');
         const storedBase = localStorage.getItem('httpBaseURL');
-        if (storedUrls) { try { const parsed = JSON.parse(storedUrls); for (let i = 1; i <= RELAY_COUNT; i++) if (parsed[i]) httpRelayUrls[i] = { on: parsed[i].on || "", off: parsed[i].off || "" }; } catch(e) {} }
+        if (storedUrls) { try { const parsed = JSON.parse(storedUrls); for (let i = 1; i <= RELAY_COUNT; i++) { if (parsed[i]) httpRelayUrls[i] = { on: parsed[i].on || "", off: parsed[i].off || "" }; } } catch(e) {} }
         if (storedBase) httpBaseURL = storedBase;
-        const storedTelegramToken = localStorage.getItem('telegramToken');
-        const storedTelegramChatId = localStorage.getItem('telegramChatId');
-        if (storedTelegramToken) telegramToken = storedTelegramToken;
-        if (storedTelegramChatId) telegramChatId = storedTelegramChatId;
-        
-        // Generate HTML table rows dynamically
-        const tbody = document.getElementById('relay-url-tbody');
-        tbody.innerHTML = '';
         for (let i = 1; i <= RELAY_COUNT; i++) {
-            const colors = ['#ff4444','#44ff44','#4444ff','#ffff44','#ff44ff','#44ffff'];
-            const row = `<tr>
-                <td><span class="relay-color" style="background:${colors[i-1]}"></span> RELAY ${i}</td>
-                <td><input type="text" id="relay${i}-on" class="url-input-small" value="${escapeHtml(httpRelayUrls[i].on)}"></td>
-                <td><input type="text" id="relay${i}-off" class="url-input-small" value="${escapeHtml(httpRelayUrls[i].off)}"></td>
-                <td><input type="number" id="relay${i}-delay" class="delay-input" min="0" max="60" value="${relayDelays[i] || 0}" step="0.5"></td>
-            </tr>`;
-            tbody.insertAdjacentHTML('beforeend', row);
+            const onInput = document.getElementById(`relay${i}-on`);
+            const offInput = document.getElementById(`relay${i}-off`);
+            const delayInput = document.getElementById(`relay${i}-delay`);
+            if (onInput) onInput.value = httpRelayUrls[i].on;
+            if (offInput) offInput.value = httpRelayUrls[i].off;
+            if (delayInput) delayInput.value = relayDelays[i] || 0;
         }
-        const baseInput = document.getElementById('http-base-url'); if (baseInput) baseInput.value = httpBaseURL;
-        const tokenInput = document.getElementById('telegram-token'); if (tokenInput) tokenInput.value = telegramToken;
-        const chatIdInput = document.getElementById('telegram-chatid'); if (chatIdInput) chatIdInput.value = telegramChatId;
+        const baseInput = document.getElementById('http-base-url');
+        if (baseInput) baseInput.value = httpBaseURL;
+        console.log("Settings loaded - Version:", VERSION, `(${RELAY_COUNT} relays)`);
+        
+        // Update Telegram status after load
+        updateTelegramStatus(isTelegramConfigured());
     }
     function saveCustomNames() { safeLocalStorageSet('relayCustomNames', JSON.stringify(customNames)); }
     function saveDelays() { safeLocalStorageSet('relayDelays', JSON.stringify(relayDelays)); }
     function saveRelayUrls() {
         for (let i = 1; i <= RELAY_COUNT; i++) {
             httpRelayUrls[i] = { on: document.getElementById(`relay${i}-on`).value.trim(), off: document.getElementById(`relay${i}-off`).value.trim() };
-            let delayVal = parseFloat(document.getElementById(`relay${i}-delay`).value);
-            if (isNaN(delayVal)) delayVal = 0;
-            delayVal = Math.min(60, Math.max(0, delayVal));
-            relayDelays[i] = delayVal;
-            relays[i-1].delay = delayVal;
+            const delayInput = document.getElementById(`relay${i}-delay`);
+            if (delayInput) {
+                let delayVal = parseFloat(delayInput.value);
+                if (isNaN(delayVal)) delayVal = 0;
+                if (delayVal < 0) delayVal = 0;
+                if (delayVal > 60) delayVal = 60;
+                relayDelays[i] = delayVal;
+                relays[i-1].delay = relayDelays[i];
+                delayInput.value = delayVal;
+            }
         }
-        const baseInput = document.getElementById('http-base-url'); if (baseInput && baseInput.value.trim()) httpBaseURL = baseInput.value.trim();
+        const baseInput = document.getElementById('http-base-url');
+        if (baseInput && baseInput.value.trim()) httpBaseURL = baseInput.value.trim();
         safeLocalStorageSet('httpRelayUrls', JSON.stringify(httpRelayUrls));
         safeLocalStorageSet('httpBaseURL', httpBaseURL);
         saveDelays();
-        showToastMessage("✅ บันทึก URL และหน่วงเวลาเรียบร้อย");
+        showToastMessage("✅ บันทึก URL และหน่วงเวลา 6 รีเลย์เรียบร้อย");
         document.getElementById('http-status').innerHTML = '✅ บันทึกการตั้งค่าเรียบร้อย';
     }
 
-    // ==================== HTTP CONTROL ====================
-    function getHttpUrl(relayId, state) { const urls = httpRelayUrls[relayId]; if (state && urls.on && urls.on !== "") return urls.on; if (!state && urls.off && urls.off !== "") return urls.off; return `${httpBaseURL}/${state ? "ONVIDEO" : "OFFVIDEO"}`; }
-    function sendHttpCommand(relayId, state) { const url = getHttpUrl(relayId, state); if(url) { fetch(url, { method: 'GET', mode: 'no-cors' }).catch(e=>console.log); return true; } return false; }
-    
-    function updateRelayState(relayId, newState) {
-        const relay = relays.find(r => r.id === relayId);
-        if (!relay || relay.state === newState) return;
-        if (relay.pendingTimeout) clearTimeout(relay.pendingTimeout);
-        const delay = relayDelays[relayId] || 0;
-        const displayName = customNames[relayId] || relay.name;
-        if (delay > 0) {
-            showToastMessage(`⏱ ${displayName} จะ${newState ? 'เปิด' : 'ปิด'} ใน ${delay} วินาที`);
-            speakFeedback(`หน่วงเวลา ${delay} วินาที ${displayName} จะ${newState ? 'เปิด' : 'ปิด'}`);
-            relay.pendingTimeout = setTimeout(() => { executeRelayCommand(relayId, newState); relay.pendingTimeout = null; }, delay * 1000);
-        } else { executeRelayCommand(relayId, newState); }
+    // ==================== HTTP API FUNCTIONS ====================
+    function getHttpUrl(relayId, state) {
+        const urls = httpRelayUrls[relayId];
+        if (state && urls.on && urls.on !== "") return urls.on;
+        if (!state && urls.off && urls.off !== "") return urls.off;
+        if (urls.on === urls.off && urls.on !== "") return urls.on;
+        return `${httpBaseURL}/${state ? "ON" : "OFF"}`;
     }
-    function executeRelayCommand(relayId, newState) {
-        const relay = relays.find(r => r.id === relayId);
-        if (!relay || relay.state === newState) return;
-        const success = sendHttpCommand(relayId, newState);
-        if (success) {
-            relay.state = newState;
-            renderRelays();
-            const displayName = customNames[relayId] || relay.name;
-            const stateText = newState ? 'เปิด' : 'ปิด';
-            showToastMessage(`🔌 ${displayName} → ${stateText}`);
-            speakFeedback(`${displayName} ${stateText} แล้วเจ้านาย`);
-            if (isTelegramConnected && telegramChatId) sendTelegramMessage(`🔌 ${displayName} ${stateText} แล้วเจ้านาย`);
-        }
+    function sendHttpCommand(relayId, state) {
+        const url = getHttpUrl(relayId, state);
+        if (url && url !== "") { fetch(url, { method: 'GET', mode: 'no-cors' }).catch(e => console.log("HTTP request sent:", url)); console.log(`HTTP ${state ? 'ON' : 'OFF'} -> ${url}`); return true; } 
+        else { showToastMessage(`⚠️ ไม่มี URL สำหรับรีเลย์ ${relayId}`); return false; }
     }
-    function toggleRelay(id) { const relay = relays.find(r => r.id === id); if(relay) updateRelayState(id, !relay.state); }
-    
-    function allRelaysOn() {
-        relays.forEach(r => { if(!r.state) { sendHttpCommand(r.id, true); r.state = true; } });
-        renderRelays();
-        showToastMessage("⚡ เปิดรีเลย์ทั้งหมดแล้วครับเจ้านาย");
-        speakFeedback("เปิดรีเลย์ทั้งหมดแล้วครับเจ้านาย");
-        if(isTelegramConnected && telegramChatId) sendTelegramMessage("⚡ เปิดรีเลย์ทั้งหมดแล้วครับเจ้านาย");
-    }
-    function allRelaysOff() {
-        relays.forEach(r => { if(r.state) { sendHttpCommand(r.id, false); r.state = false; } });
-        renderRelays();
-        showToastMessage("🔻 ปิดรีเลย์ทั้งหมดแล้วครับเจ้านาย");
-        speakFeedback("ปิดรีเลย์ทั้งหมดแล้วครับเจ้านาย");
-        if(isTelegramConnected && telegramChatId) sendTelegramMessage("🔻 ปิดรีเลย์ทั้งหมดแล้วครับเจ้านาย");
-    }
-    function syncStatus() { showToastMessage("🔄 SYNC - ใช้ HTTP API หรือ MQTT"); }
-    
+
+    // ==================== RELAY CONTROL FUNCTIONS ====================
     function renderRelays() {
         const grid = document.getElementById('relayGrid'); if (!grid) return;
         grid.innerHTML = '';
-        relays.forEach(relay => {
+        relays.forEach((relay) => {
             const card = document.createElement('div'); card.className = `relay-card ${relay.state ? 'active' : ''}`; card.dataset.id = relay.id;
             const displayName = customNames[relay.id] || relay.name;
-            card.innerHTML = `
-                <button class="edit-name-btn" onclick="event.stopPropagation(); openNameModal(${relay.id}, '${displayName.replace(/'/g, "\\'")}')">✏️ ตั้งชื่อ</button>
-                <div class="relay-icon"><img src="${relay.icon}" alt="Relay ${relay.id}" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 100 100\'%3E%3Ccircle cx=\'50\' cy=\'50\' r=\'45\' fill=\'%2300ffff\'/%3E%3Ctext x=\'50\' y=\'67\' text-anchor=\'middle\' fill=\'%23000\' font-size=\'40\'%3E${relay.id}%3C/text%3E%3C/svg%3E'"></div>
+            const delayValue = relayDelays[relay.id] || 0;
+            card.innerHTML = `<button class="edit-name-btn" onclick="event.stopPropagation(); openNameModal(${relay.id}, '${displayName.replace(/'/g, "\\'")}')"><span>✏️</span> ตั้งชื่อ</button>
+                <div class="relay-icon"><img src="${relay.icon}" alt="Relay ${relay.id}" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 100 100\'%3E%3Ccircle cx=\'50\' cy=\'50\' r=\'45\' fill=\'%2300ffff\' stroke=\'%2300aaff\' stroke-width=\'3\'/%3E%3Ctext x=\'50\' y=\'67\' text-anchor=\'middle\' fill=\'%23000\' font-size=\'40\' font-weight=\'bold\'%3E${relay.id}%3C/text%3E%3C/svg%3E'"></div>
                 <div class="relay-number">RELAY ${relay.id}</div><div class="relay-name">${escapeHtml(displayName)}</div>
                 <div class="relay-label">${relay.label} (${relay.pin})</div>
-                <div class="delay-control"><label>⏱</label><input type="number" id="delay-${relay.id}" min="0" max="60" step="0.5" value="${relayDelays[relay.id]||0}" onchange="updateRelayDelay(${relay.id}, this.value)" onclick="event.stopPropagation()"><span>วินาที</span></div>
+                <div class="delay-control"><label>⏱</label><input type="number" id="delay-${relay.id}" min="0" max="60" step="0.5" value="${delayValue}" onchange="updateRelayDelay(${relay.id}, this.value)" onclick="event.stopPropagation()"><span>วินาที</span></div>
                 <div class="relay-state ${relay.state ? 'state-on' : 'state-off'}">${relay.state ? 'ON' : 'OFF'}</div>`;
-            card.onclick = (e) => { if(!e.target.closest('.edit-name-btn') && !e.target.closest('.delay-control')) toggleRelay(relay.id); };
+            card.onclick = (e) => { if (!e.target.classList.contains('edit-name-btn') && !e.target.closest('.edit-name-btn') && !e.target.closest('.delay-control')) toggleRelay(relay.id); };
             grid.appendChild(card);
         });
     }
-    function updateRelayDelay(relayId, value) { let d=Math.min(60,Math.max(0,parseFloat(value)||0)); relayDelays[relayId]=d; relays[relayId-1].delay=d; saveDelays(); showToastMessage(`ตั้งค่าหน่วงเวลา RELAY ${relayId} = ${d} วินาที`); }
-
-    // ==================== MODAL ====================
-    let currentEditingRelay = null;
-    function openNameModal(relayId, currentName) { currentEditingRelay=relayId; document.getElementById('nameModal').classList.add('active'); document.getElementById('relayNameInput').value=currentName; document.getElementById('modalTitle').innerHTML=`ตั้งชื่อ RELAY ${relayId}`; }
-    function saveRelayName() { let newName=document.getElementById('relayNameInput').value.trim(); if(!newName) return; customNames[currentEditingRelay]=newName; relays[currentEditingRelay-1].name=newName; saveCustomNames(); renderRelays(); closeModal(); speakFeedback(`ตั้งชื่อ RELAY ${currentEditingRelay} เป็น ${newName}`); showToastMessage(`✅ ตั้งชื่อ RELAY ${currentEditingRelay} เป็น "${newName}"`); }
-    function deleteRelayName() { delete customNames[currentEditingRelay]; saveCustomNames(); relays[currentEditingRelay-1].name=defaultNames[currentEditingRelay]; renderRelays(); closeModal(); speakFeedback(`ลบชื่อ RELAY ${currentEditingRelay}`); }
-    function closeModal() { document.getElementById('nameModal').classList.remove('active'); currentEditingRelay=null; }
-
-    // ==================== TELEGRAM (SUPPORT 6 RELAYS) ====================
-    function handleNumberShortcut(number, chatId) {
-        if (number === 0) { allRelaysOff(); sendTelegramMessage("🔻 ปิดรีเลย์ทั้งหมดเรียบร้อย", chatId); return true; }
-        if (number === 9) { allRelaysOn(); sendTelegramMessage("⚡ เปิดรีเลย์ทั้งหมดเรียบร้อย", chatId); return true; }
-        if (number >= 1 && number <= RELAY_COUNT) {
-            const relay = relays.find(r => r.id === number);
-            const displayName = customNames[number] || relay.name;
-            const now = Date.now();
-            if (lastNumberPress.number === number && (now - lastNumberPress.timestamp) < 2000) {
-                const newState = !relay.state;
-                updateRelayState(number, newState);
-                sendTelegramMessage(`${newState ? '✅ เปิด' : '🔻 ปิด'} ${displayName} เรียบร้อยแล้วครับเจ้านาย`, chatId);
-                if (lastNumberPress.timeout) clearTimeout(lastNumberPress.timeout);
-                lastNumberPress.number = null;
-            } else {
-                if (!relay.state) { updateRelayState(number, true); sendTelegramMessage(`✅ เปิด ${displayName} เรียบร้อยแล้วครับเจ้านาย`, chatId); }
-                else sendTelegramMessage(`⏱ ${displayName} เปิดอยู่แล้ว กด ${number} ซ้ำเพื่อปิด`, chatId);
-                lastNumberPress.number = number; lastNumberPress.timestamp = now;
-                if (lastNumberPress.timeout) clearTimeout(lastNumberPress.timeout);
-                lastNumberPress.timeout = setTimeout(() => { lastNumberPress.number = null; }, 2000);
+    function updateRelayDelay(relayId, value) { let delay = parseFloat(value); if (isNaN(delay)) delay = 0; if (delay < 0) delay = 0; if (delay > 60) delay = 60; relayDelays[relayId] = delay; relays[relayId-1].delay = delay; saveDelays(); document.getElementById(`delay-${relayId}`).value = delay; showToastMessage(`ตั้งค่าหน่วงเวลา RELAY ${relayId} = ${delay} วินาที`); }
+    function toggleRelay(id) { const relay = relays.find(r => r.id === id); if (relay) updateRelayState(id, !relay.state); }
+    function updateRelayState(relayId, newState) {
+        const relay = relays.find(r => r.id === relayId); if (!relay) return;
+        if (relay.pendingTimeout) { clearTimeout(relay.pendingTimeout); relay.pendingTimeout = null; }
+        const delay = relayDelays[relayId] || 0;
+        const displayName = customNames[relayId] || relay.name;
+        if (delay > 0) {
+            showToastMessage(`⏱ ${displayName} จะ${newState ? 'เปิด' : 'ปิด'} ใน ${delay} วินาที`); speakFeedback(`หน่วงเวลา ${delay} วินาที ${displayName} จะ${newState ? 'เปิด' : 'ปิด'}`);
+            const stateDiv = document.querySelector(`.relay-card[data-id='${relayId}'] .relay-state`);
+            if (stateDiv) { stateDiv.classList.add('pending'); stateDiv.innerText = '⏱ PENDING'; setTimeout(() => { if (stateDiv && stateDiv.classList.contains('pending') && !relay.pendingTimeout) { stateDiv.classList.remove('pending'); stateDiv.innerText = relay.state ? 'ON' : 'OFF'; } }, delay * 1000); }
+            relay.pendingTimeout = setTimeout(() => { executeRelayCommand(relayId, newState); relay.pendingTimeout = null; }, delay * 1000);
+        } else executeRelayCommand(relayId, newState);
+    }
+    async function executeRelayCommand(relayId, newState) {
+        const relay = relays.find(r => r.id === relayId); if (!relay || relay.state === newState) return;
+        const success = sendHttpCommand(relayId, newState);
+        if (success) { 
+            relay.state = newState; 
+            renderRelays(); 
+            const displayName = customNames[relayId] || relay.name; 
+            const stateText = newState ? 'เปิด' : 'ปิด'; 
+            const actionText = newState ? 'ON' : 'OFF';
+            showToastMessage(`🔌 ${displayName} → ${stateText}`); 
+            speakFeedback(`${displayName} ${stateText} แล้ว`);
+            
+            // ส่ง Telegram Alert
+            await sendTelegramAlert(`${displayName} ถูก${stateText}`, displayName, actionText);
+        }
+    }
+    async function allRelaysOn() { 
+        for (const r of relays) { 
+            if (!r.state) {
+                sendHttpCommand(r.id, true);
+                r.state = true;
+                const displayName = customNames[r.id] || r.name;
+                await sendTelegramAlert(`${displayName} ถูกเปิด (คำสั่งเปิดทั้งหมด)`, displayName, 'ON');
             }
-            return true;
-        }
-        return false;
+        } 
+        renderRelays(); 
+        showToastMessage("⚡ เปิดรีเลย์ทั้งหมด 6 ช่อง"); 
+        speakFeedback("เปิดรีเลย์ทั้งหมด");
     }
-    function processTelegramCommand(text, chatId) {
-        const cmd = text.toLowerCase().trim();
-        if (cmd === '/help' || cmd === '/start') {
-            let help = `🤖 TrojanAI (BP) v${VERSION}\n⌨️ คีย์ลัด: 1-6 เปิด/กดซ้ำปิด | 0 ปิดหมด | 9 เปิดหมด\nคำสั่ง: /relay1_on .. /relay6_off, /all_on, /all_off, /status\nพิมพ์ไทย: เปิดไฟหลัก, ปิดมอเตอร์ฯ`;
-            sendTelegramMessage(help, chatId); return;
-        }
-        if (cmd === '/status') { let msg="📊 สถานะ:\n"; relays.forEach(r=>{ msg+=`${customNames[r.id]||r.name}: ${r.state?"✅เปิด":"❌ปิด"}\n`; }); sendTelegramMessage(msg,chatId); return; }
-        if (cmd === '/all_on') { allRelaysOn(); sendTelegramMessage("เปิดทั้งหมด",chatId); return; }
-        if (cmd === '/all_off') { allRelaysOff(); sendTelegramMessage("ปิดทั้งหมด",chatId); return; }
-        const relayMatch = cmd.match(/\/relay([1-6])_(on|off)/);
-        if (relayMatch) { let id=parseInt(relayMatch[1]), action=relayMatch[2]==='on'; updateRelayState(id,action); sendTelegramMessage(`${action?"เปิด":"ปิด"} ${customNames[id]||"RELAY"+id}`,chatId); return; }
-        for(let i=1;i<=RELAY_COUNT;i++) { let name=(customNames[i]||"").toLowerCase(); if(name && (cmd.includes("เปิด"+name) || cmd.includes("ปิด"+name))) { let isOn=cmd.includes("เปิด"); updateRelayState(i,isOn); sendTelegramMessage(`${isOn?"เปิด":"ปิด"} ${customNames[i]}`,chatId); return; } }
-        sendTelegramMessage("❌ ไม่รู้จักคำสั่ง พิมพ์ /help",chatId);
+    async function allRelaysOff() { 
+        for (const r of relays) { 
+            if (r.state) {
+                sendHttpCommand(r.id, false);
+                r.state = false;
+                const displayName = customNames[r.id] || r.name;
+                await sendTelegramAlert(`${displayName} ถูกปิด (คำสั่งปิดทั้งหมด)`, displayName, 'OFF');
+            }
+        } 
+        renderRelays(); 
+        showToastMessage("🔻 ปิดรีเลย์ทั้งหมด"); 
+        speakFeedback("ปิดรีเลย์ทั้งหมด");
     }
-    function sendTelegramMessage(message, customChatId=null) { let target=customChatId||telegramChatId; if(!target) return; fetch(`https://api.telegram.org/bot${telegramToken}/sendMessage`,{method:'POST',body:new URLSearchParams({chat_id:target,text:message,parse_mode:'Markdown'})}).catch(e=>console.log); }
-    function connectTelegram() { let token=document.getElementById('telegram-token').value.trim(); if(!token) return; telegramToken=token; safeLocalStorageSet('telegramToken',token); fetch(`https://api.telegram.org/bot${telegramToken}/getMe`).then(r=>r.json()).then(data=>{ if(data.ok){ isTelegramConnected=true; updateConnectionStatus(true,`Telegram: @${data.result.username}`); document.getElementById('telegram-status-text').innerHTML=`✅ เชื่อมต่อ @${data.result.username}<br>⌨️ 1-6 เปิด/กดซ้ำปิด, 0=ปิดหมด,9=เปิดหมด`; startTelegramPolling(); sendTelegramMessage(`🤖 TrojanAI (BP) v${VERSION} เชื่อมต่อแล้ว!`); } else throw new Error(); }).catch(()=>{ isTelegramConnected=false; updateConnectionStatus(false,'Telegram Error'); }); }
-    function startTelegramPolling() { if(telegramPollingInterval) clearInterval(telegramPollingInterval); telegramPollingInterval=setInterval(()=>{ if(!isTelegramConnected) return; fetch(`https://api.telegram.org/bot${telegramToken}/getUpdates?offset=${telegramUpdateOffset}&timeout=30`).then(r=>r.json()).then(data=>{ if(data.ok && data.result) data.result.forEach(up=>{ telegramUpdateOffset=up.update_id+1; if(up.message&&up.message.text){ let chatId=up.message.chat.id; if(!telegramChatId){ telegramChatId=chatId; safeLocalStorageSet('telegramChatId',telegramChatId); document.getElementById('telegram-chatid').value=telegramChatId; } let msg=up.message.text.trim(); document.getElementById('telegram-last-message').innerHTML=`📨: ${msg}`; if(msg.match(/^\d+$/) && handleNumberShortcut(parseInt(msg),chatId)) return; processTelegramCommand(msg,chatId); } }); }).catch(e=>console.log); },2000); }
+    function syncStatus() { showToastMessage("🔄 SYNC - สถานะรีเลย์ตามล่าสุด (ไม่มีฟีดแบ็กจากอุปกรณ์)"); }
 
-    // ==================== VOICE (6 RELAYS SUPPORT) ====================
-    function processVoiceCommand(cmd) { if(!cmd) return; let text=cmd.toLowerCase().trim(); document.getElementById('voiceCommandDisplay').innerHTML=`🎤 คำสั่ง: "${cmd}"`; setTimeout(()=>{let d=document.getElementById('voiceCommandDisplay'); if(d) d.innerHTML='';},3000);
-        if(text.includes("เปิดทั้งหมด")) { allRelaysOn(); return; } if(text.includes("ปิดทั้งหมด")) { allRelaysOff(); return; }
-        let relayId=null; for(let i=1;i<=RELAY_COUNT;i++) { let cn=(customNames[i]||"").toLowerCase(); if(cn && text.includes(cn)) { relayId=i; break; } }
-        if(!relayId){ const kw={1:["ไฟหลัก"],2:["มอเตอร์"],3:["ระบายอากาศ"],4:["อุปกรณ์"],5:["โซลาร์"],6:["สนาม"]}; for(let i=1;i<=RELAY_COUNT;i++) if(kw[i].some(k=>text.includes(k))){ relayId=i; break;} }
-        if(!relayId){ let m=text.match(/\b([1-6])\b/); if(m) relayId=parseInt(m[1]); }
-        if(!relayId){ speakFeedback("ไม่พบอุปกรณ์ครับเจ้านาย"); return; }
-        let isOn=text.includes("เปิด")||text.includes("turn on"); updateRelayState(relayId,isOn);
-    }
-    function setupAutoListening(){ if(!('webkitSpeechRecognition' in window)) return; navigator.mediaDevices.getUserMedia({audio:true}).then(s=>{ s.getTracks().forEach(t=>t.stop()); startRecognition(); }).catch(()=>{ isAutoListening=false; document.getElementById('voice-status-text').innerHTML='🔇 ไม่อนุญาตไมค์'; }); }
-    function startRecognition(){ const SpeechRecognition=window.SpeechRecognition||window.webkitSpeechRecognition; recognition=new SpeechRecognition(); recognition.lang='th-TH'; recognition.interimResults=true; recognition.continuous=true;
-        recognition.onstart=()=>{ document.getElementById('voiceBadge').classList.add('listening'); document.getElementById('voice-led').classList.add('listening'); document.getElementById('voice-status-text').innerHTML='🎧 ฟัง...'; errorCount=0; };
-        recognition.onresult=(e)=>{ for(let i=e.resultIndex;i<e.results.length;i++) if(e.results[i].isFinal) processVoiceCommand(e.results[i][0].transcript); else document.getElementById('voiceCommandDisplay').innerHTML=`🎤 กำลังฟัง: "${e.results[i][0].transcript}"`; };
-        recognition.onerror=()=>{ errorCount++; if(errorCount>10) isAutoListening=false; };
-        recognition.onend=()=>{ document.getElementById('voiceBadge').classList.remove('listening'); document.getElementById('voice-led').classList.remove('listening'); if(isAutoListening && errorCount<10) setTimeout(()=>{ try{ recognition.start(); }catch(e){} },1000); else document.getElementById('voice-status-text').innerHTML='🤖 AI พร้อมทำงาน'; };
-        try{ recognition.start(); }catch(e){}
-    }
-    function toggleAutoListen(){ isAutoListening=!isAutoListening; if(isAutoListening){ startRecognition(); document.getElementById('voiceHint').innerHTML='🎤 AI ฟังอัตโนมัติ (ฟังตลอด)'; speakFeedback("เปิดโหมดฟัง"); } else { if(recognition) recognition.stop(); document.getElementById('voiceHint').innerHTML='🎤 AI ปิดฟัง (แตะเพื่อเปิด)'; speakFeedback("ปิดโหมดฟัง"); } }
+    // ==================== MODAL FUNCTIONS ====================
+    function openNameModal(relayId, currentName) { currentEditingRelay = relayId; document.getElementById('nameModal').classList.add('active'); document.getElementById('relayNameInput').value = currentName; document.getElementById('modalTitle').innerHTML = `ตั้งชื่อ RELAY ${relayId}`; }
+    function saveRelayName() { const newName = document.getElementById('relayNameInput').value.trim(); if (!newName) { showToastMessage("⚠️ กรุณาใส่ชื่อ"); return; } customNames[currentEditingRelay] = newName; saveCustomNames(); const relay = relays.find(r => r.id === currentEditingRelay); if (relay) relay.name = newName; renderRelays(); closeModal(); speakFeedback(`ตั้งชื่อ RELAY ${currentEditingRelay} เป็น ${newName} เรียบร้อย`); showToastMessage(`✅ ตั้งชื่อ RELAY ${currentEditingRelay} เป็น "${newName}"`); }
+    function deleteRelayName() { delete customNames[currentEditingRelay]; saveCustomNames(); const defaultNames = { 1: "ไฟหลัก", 2: "มอเตอร์ปั๊ม", 3: "ระบายอากาศ", 4: "อุปกรณ์เสริม", 5: "ไฟสวน", 6: "เครื่องกรองน้ำ" }; const relay = relays.find(r => r.id === currentEditingRelay); if (relay) relay.name = defaultNames[currentEditingRelay] || `รีเลย์ ${currentEditingRelay}`; renderRelays(); closeModal(); speakFeedback(`ลบชื่อ RELAY ${currentEditingRelay} กลับเป็นชื่อเดิม`); showToastMessage(`🗑️ ลบชื่อเรียบร้อย`); }
+    function closeModal() { document.getElementById('nameModal').classList.remove('active'); currentEditingRelay = null; }
 
-    // ==================== MQTT ====================
-    function connectMQTT(){ let broker=document.getElementById('mqtt-broker').value, port=parseInt(document.getElementById('mqtt-port').value), clientId=document.getElementById('mqtt-clientid').value||'webclient_'+Date.now(); if(mqttClient) try{mqttClient.disconnect();}catch(e){} mqttClient=new Paho.MQTT.Client(broker,port,clientId); mqttClient.onConnectionLost=()=>{ updateConnectionStatus(false,'MQTT Disconnected'); document.getElementById('mqtt-status').innerHTML='❌ หลุด'; }; mqttClient.onMessageArrived=(msg)=>{ let m=msg.destinationName.match(/relay\/(\d+)/); if(m){ let rid=parseInt(m[1]); if(rid>=1&&rid<=RELAY_COUNT){ let newState=msg.payloadString==='ON'||msg.payloadString==='1'; let relay=relays.find(r=>r.id===rid); if(relay && relay.state!==newState){ relay.state=newState; renderRelays(); } } } }; mqttClient.connect({timeout:5, onSuccess:()=>{ updateConnectionStatus(true,'MQTT Online'); document.getElementById('mqtt-status').innerHTML='✅ Connected'; for(let i=1;i<=RELAY_COUNT;i++) mqttClient.subscribe(`home/relay/${i}/state`); }, onFailure:()=>{ updateConnectionStatus(false,'MQTT ล้มเหลว'); document.getElementById('mqtt-status').innerHTML='❌ ล้มเหลว'; } }); }
-    function testHTTPConnection(){ let base=document.getElementById('http-base-url').value.trim(); if(base) httpBaseURL=base; fetch(httpBaseURL,{method:'HEAD',mode:'no-cors'}).then(()=>{ updateConnectionStatus(true,'HTTP พร้อม'); document.getElementById('http-status').innerHTML='✅ ฐานพร้อม'; }).catch(()=>{ updateConnectionStatus(true,'HTTP Active'); }); }
+    // ==================== VOICE COMMAND ====================
+    async function processVoiceCommand(cmd) {
+        if(!cmd) return; let text = cmd.toLowerCase().trim();
+        const displayDiv = document.getElementById('voiceCommandDisplay'); if(displayDiv){ displayDiv.innerHTML = `🎤 คำสั่ง: "${cmd}"`; setTimeout(()=>{ if(displayDiv) displayDiv.innerHTML=''; },3000); }
+        if(text.includes("เปิดทั้งหมด")){ allRelaysOn(); return; } 
+        if(text.includes("ปิดทั้งหมด")){ allRelaysOff(); return; }
+        if(text.includes("กลางคืน")){ 
+            updateRelayState(1,true); updateRelayState(5,true); updateRelayState(2,false); updateRelayState(3,false); updateRelayState(4,false); updateRelayState(6,false); 
+            speakFeedback("เปิดโหมดกลางคืน (ไฟหลัก+ไฟสวน)");
+            await sendTelegramAlert("เปิดโหมดกลางคืน (ไฟหลัก+ไฟสวน)", "โหมดกลางคืน", "ON");
+            return; 
+        }
+        if(text.includes("ประหยัด")){ 
+            updateRelayState(1,true); for(let i=2;i<=6;i++) updateRelayState(i,false); 
+            speakFeedback("เปิดโหมดประหยัดพลังงาน");
+            await sendTelegramAlert("เปิดโหมดประหยัดพลังงาน (เปิดเฉพาะไฟหลัก)", "โหมดประหยัด", "ON");
+            return; 
+        }
+        let relayId = null;
+        for (let i = 1; i <= RELAY_COUNT; i++) { if(customNames[i] && text.includes(customNames[i].toLowerCase())){ relayId=i; break; } }
+        if(!relayId){ const kw={1:["ไฟหลัก"],2:["มอเตอร์","ปั๊ม"],3:["ระบายอากาศ"],4:["อุปกรณ์เสริม"],5:["ไฟสวน","สวน"],6:["เครื่องกรอง","กรองน้ำ"]}; for(let i=1;i<=RELAY_COUNT;i++){ if(kw[i] && kw[i].some(k=>text.includes(k))){ relayId=i; break; } } }
+        if(!relayId){ let match = text.match(/\b([1-6])\b/); if(match) relayId=parseInt(match[1]); }
+        if(!relayId){ speakFeedback("ไม่พบอุปกรณ์"); return; }
+        let isOn = text.includes("เปิด") || text.includes("turn on"); 
+        updateRelayState(relayId, isOn);
+    }
+    function setupAutoListening() { if(!('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) { document.getElementById('voice-status-text').innerHTML='❌ เบราว์เซอร์ไม่รองรับการฟัง'; return; } navigator.mediaDevices.getUserMedia({ audio: true }).then(stream=>{ stream.getTracks().forEach(t=>t.stop()); startRecognition(); }).catch(err=>{ isAutoListening=false; document.getElementById('voice-status-text').innerHTML='🔇 กรุณาอนุญาตไมโครโฟน'; }); }
+    function startRecognition() { const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition; recognition = new SpeechRecognition(); recognition.lang='th-TH'; recognition.interimResults=true; recognition.continuous=true; recognition.onstart=()=>{ document.getElementById('voiceBadge').classList.add('listening'); document.getElementById('voice-led').classList.add('listening'); document.getElementById('voice-status-text').innerHTML='🎧 กำลังฟัง...'; errorCount=0; }; recognition.onresult=(e)=>{ for(let i=e.resultIndex;i<e.results.length;i++){ if(e.results[i].isFinal) processVoiceCommand(e.results[i][0].transcript); else document.getElementById('voiceCommandDisplay').innerHTML=`🎤 กำลังฟัง: "${e.results[i][0].transcript}"`; } }; recognition.onerror=(e)=>{ errorCount++; if(e.error==='not-allowed'){ document.getElementById('voice-status-text').innerHTML='🔇 ไม่อนุญาตใช้ไมโครโฟน'; isAutoListening=false; } if(errorCount>10){ isAutoListening=false; document.getElementById('voice-status-text').innerHTML='⚠️ หยุดฟังอัตโนมัติ'; } }; recognition.onend=()=>{ document.getElementById('voiceBadge').classList.remove('listening'); document.getElementById('voice-led').classList.remove('listening'); if(isAutoListening && errorCount<10){ setTimeout(()=>{ try{ recognition.start(); }catch(e){} },1000); } else { document.getElementById('voice-status-text').innerHTML='🤖 AI พร้อมทำงาน (แตะปุ่มเพื่อเริ่มฟัง)'; } }; try{ recognition.start(); }catch(e){} }
+    function toggleAutoListen() { isAutoListening=!isAutoListening; if(isAutoListening){ if(recognition) try{ recognition.stop(); }catch(e){} startRecognition(); document.getElementById('voiceHint').innerHTML='🎤 กำลังฟังอัตโนมัติ... (แตะเพื่อปิด)'; speakFeedback("เปิดโหมดฟังอัตโนมัติ"); } else { if(recognition) recognition.stop(); document.getElementById('voiceHint').innerHTML='🎤 แตะเพื่อเปิดฟัง (ฟังตลอด)'; speakFeedback("ปิดโหมดฟังอัตโนมัติ"); } }
 
-    // ==================== INITIALIZATION (only after login) ====================
-    function initializeApp() {
-        // Set up protocol buttons
-        document.querySelectorAll('.proto-btn').forEach(btn=>btn.addEventListener('click',()=>{
-            document.querySelectorAll('.proto-btn').forEach(b=>b.classList.remove('active'));
-            btn.classList.add('active');
-            currentProtocol=btn.dataset.proto;
-            document.querySelectorAll('.connection-config').forEach(c=>c.classList.remove('active'));
-            document.getElementById(`${currentProtocol}-config`).classList.add('active');
-            if(currentProtocol!=='telegram' && telegramPollingInterval) clearInterval(telegramPollingInterval);
-        }));
-        document.getElementById('allOnBtn').addEventListener('click',allRelaysOn);
-        document.getElementById('allOffBtn').addEventListener('click',allRelaysOff);
-        document.getElementById('syncBtn').addEventListener('click',syncStatus);
-        
-        // Load stored settings, render, start time, voice
-        loadStoredSettings();
-        renderRelays();
-        function updateTimestamp(){ document.getElementById('timestamp').innerHTML=`⏱️ ${new Date().toLocaleTimeString('th-TH')}`; }
-        updateTimestamp();
-        setInterval(updateTimestamp,1000);
-        setTimeout(()=>setupAutoListening(),1000);
-        console.log(`✅ TrojanAI (BP) v${VERSION} - 6 รีเลย์ พร้อมใช้งาน (Netlify)`);
-    }
+    // ==================== HTTP TEST ====================
+    function testHTTPConnection() { const baseInput = document.getElementById('http-base-url'); if(baseInput && baseInput.value.trim()) httpBaseURL = baseInput.value.trim(); fetch(httpBaseURL, { method:'HEAD', mode:'no-cors' }).then(()=>{ updateConnectionStatus(true,'HTTP พร้อม'); document.getElementById('http-status').innerHTML='✅ ฐานพร้อมใช้งาน'; }).catch(()=>{ updateConnectionStatus(true,'HTTP Active'); document.getElementById('http-status').innerHTML='⚠️ ใช้งานตาม URL'; }); }
 
-    // ==================== LOGIN SYSTEM ====================
-    const ACCESS_PASSWORD = "trojan123";  // เปลี่ยนรหัสผ่านที่นี่
-    
-    function checkLoginStatus() {
-        const authenticated = sessionStorage.getItem('authenticated');
-        if (authenticated === 'true') {
-            document.getElementById('loginOverlay').style.display = 'none';
-            document.getElementById('mainContainer').style.display = 'block';
-            initializeApp(); // เริ่มทำงานแอป
-            return true;
-        } else {
-            document.getElementById('loginOverlay').style.display = 'flex';
-            document.getElementById('mainContainer').style.display = 'none';
-            return false;
-        }
-    }
-    
-    function login(password) {
-        if (password === ACCESS_PASSWORD) {
-            sessionStorage.setItem('authenticated', 'true');
-            document.getElementById('loginError').innerText = '';
-            checkLoginStatus(); // จะซ่อน overlay และเริ่มแอป
-            return true;
-        } else {
-            document.getElementById('loginError').innerText = '❌ รหัสผ่านไม่ถูกต้อง';
-            return false;
-        }
-    }
-    
-    // Logout function
-    function logout() {
-        sessionStorage.removeItem('authenticated');
-        location.reload(); // reload หน้าเพื่อกลับไป login
-    }
-    
-    // Bind events when DOM ready
-    document.addEventListener('DOMContentLoaded', function() {
-        checkLoginStatus();
-        
-        const loginBtn = document.getElementById('loginBtn');
-        const passwordInput = document.getElementById('passwordInput');
-        const logoutBtn = document.getElementById('logoutBtn');
-        
-        function handleLogin() {
-            const pwd = passwordInput.value;
-            login(pwd);
-        }
-        
-        loginBtn.addEventListener('click', handleLogin);
-        passwordInput.addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') handleLogin();
-        });
-        
-        logoutBtn.addEventListener('click', logout);
-    });
+    // ==================== INITIALIZATION ====================
+    document.getElementById('allOnBtn').addEventListener('click', allRelaysOn);
+    document.getElementById('allOffBtn').addEventListener('click', allRelaysOff);
+    document.getElementById('syncBtn').addEventListener('click', syncStatus);
+    function updateTimestamp() { document.getElementById('timestamp').innerHTML = `⏱️ ${new Date().toLocaleTimeString('th-TH')}`; }
+    loadStoredSettings(); renderRelays(); updateTimestamp(); setInterval(updateTimestamp,1000);
+    console.log(`✅ TrojanAI (BP) v${VERSION} - ระบบควบคุม 6 รีเลย์ (HTTP + Voice + Telegram) พร้อมทำงาน`);
+    console.log(`✅ Telegram Bot: ${isTelegramConfigured() ? 'Configured ✅' : 'Not Configured ⚠️'}`);
+    updateTelegramStatus(isTelegramConfigured());
 </script>
 </body>
 </html>
