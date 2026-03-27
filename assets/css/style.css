@@ -1,4 +1,3 @@
-
 * {
     margin: 0;
     padding: 0;
@@ -9,13 +8,12 @@
 body {
     min-height: 100vh;
     background: radial-gradient(circle at 20% 30%, #0a0f1e, #03050b);
-    font-family: 'Segoe UI', 'Orbitron', 'Courier New', monospace;
+    font-family: 'Segoe UI', monospace;
     display: flex;
     justify-content: center;
     align-items: center;
     padding: 16px;
     position: relative;
-    overflow-x: hidden;
 }
 
 body::before {
@@ -25,13 +23,7 @@ body::before {
     left: 0;
     width: 100%;
     height: 100%;
-    background: repeating-linear-gradient(
-        0deg,
-        rgba(0, 255, 255, 0.03) 0px,
-        rgba(0, 255, 255, 0.03) 2px,
-        transparent 2px,
-        transparent 6px
-    );
+    background: repeating-linear-gradient(0deg, rgba(0,255,255,0.03) 0px, rgba(0,255,255,0.03) 2px, transparent 2px, transparent 6px);
     pointer-events: none;
     z-index: 1;
 }
@@ -45,24 +37,22 @@ body::before {
 .hud-header {
     text-align: center;
     margin-bottom: 24px;
-    position: relative;
 }
 
 .title {
     font-size: 2.2rem;
     font-weight: 700;
-    background: linear-gradient(135deg, #ff0000, #ff4444, #ff0000);
+    background: linear-gradient(135deg, #ff0000, #ff4444);
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
     letter-spacing: 3px;
-    text-shadow: 0 0 30px rgba(255, 0, 0, 0.5);
     animation: pulseRed 2s infinite;
 }
 
 @keyframes pulseRed {
-    0%, 100% { opacity: 1; text-shadow: 0 0 20px rgba(255, 0, 0, 0.5); }
-    50% { opacity: 0.9; text-shadow: 0 0 35px rgba(255, 0, 0, 0.8); }
+    0%, 100% { opacity: 1; text-shadow: 0 0 20px rgba(255,0,0,0.5); }
+    50% { opacity: 0.9; text-shadow: 0 0 35px rgba(255,0,0,0.8); }
 }
 
 .subtitle {
@@ -70,13 +60,11 @@ body::before {
     font-size: 0.7rem;
     letter-spacing: 2px;
     margin-top: 6px;
-    opacity: 0.9;
-    word-break: break-word;
 }
 
 .version-badge {
     display: inline-block;
-    background: rgba(255, 68, 68, 0.3);
+    background: rgba(255,68,68,0.3);
     padding: 2px 8px;
     border-radius: 20px;
     font-size: 0.6rem;
@@ -85,66 +73,22 @@ body::before {
 }
 
 .connection-panel {
-    background: rgba(10, 20, 30, 0.75);
+    background: rgba(10,20,30,0.75);
     backdrop-filter: blur(12px);
-    border: 1px solid rgba(0, 255, 255, 0.4);
+    border: 1px solid rgba(0,255,255,0.4);
     border-radius: 24px;
     padding: 16px;
     margin-bottom: 20px;
 }
 
-.protocol-buttons {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-    margin-bottom: 16px;
-    justify-content: center;
-}
-
-.proto-btn {
-    background: rgba(0, 30, 40, 0.8);
-    border: 1px solid #0ff;
-    color: #0ff;
-    padding: 8px 16px;
-    border-radius: 40px;
-    cursor: pointer;
-    font-family: monospace;
-    font-size: 0.85rem;
-    transition: all 0.3s;
-    flex: 0 1 auto;
-}
-
-.proto-btn.active {
-    background: #0ff;
-    color: #000;
-    box-shadow: 0 0 15px #0ff;
-}
-
-.proto-btn:active {
-    transform: scale(0.96);
-}
-
-.connection-config {
-    display: none;
-    margin-top: 16px;
-    padding: 12px;
-    background: rgba(0, 0, 0, 0.5);
-    border-radius: 20px;
-}
-
-.connection-config.active {
-    display: block;
-}
-
 .config-input {
-    background: rgba(0, 30, 40, 0.8);
+    background: rgba(0,30,40,0.8);
     border: 1px solid #0ff;
     color: #0ff;
     padding: 10px 12px;
     border-radius: 12px;
-    margin: 5px 0;
-    font-family: monospace;
     width: 100%;
+    font-family: monospace;
     font-size: 0.9rem;
 }
 
@@ -171,22 +115,6 @@ body::before {
     transform: scale(0.97);
 }
 
-.telegram-status {
-    background: rgba(0, 40, 50, 0.5);
-    border-radius: 12px;
-    padding: 10px;
-    margin-top: 10px;
-    font-size: 0.75rem;
-    text-align: center;
-}
-
-.telegram-message {
-    color: #0ff;
-    margin-top: 8px;
-    font-size: 0.7rem;
-    word-break: break-word;
-}
-
 .relay-url-table {
     margin-top: 12px;
     border-collapse: collapse;
@@ -197,19 +125,18 @@ body::before {
 }
 
 .relay-url-table th, .relay-url-table td {
-    border: 1px solid rgba(0, 255, 255, 0.3);
+    border: 1px solid rgba(0,255,255,0.3);
     padding: 8px;
     text-align: left;
     color: #0ff;
-    vertical-align: middle;
 }
 
 .relay-url-table th {
-    background: rgba(0, 40, 50, 0.6);
+    background: rgba(0,40,50,0.6);
 }
 
 .url-input-small {
-    background: rgba(0, 30, 40, 0.8);
+    background: rgba(0,30,40,0.8);
     border: 1px solid #0ff;
     color: #0ff;
     padding: 6px 8px;
@@ -221,7 +148,7 @@ body::before {
 
 .delay-input {
     width: 80px;
-    background: rgba(0, 30, 40, 0.8);
+    background: rgba(0,30,40,0.8);
     border: 1px solid #0ff;
     color: #0ff;
     padding: 4px 6px;
@@ -230,9 +157,9 @@ body::before {
 }
 
 .ai-status {
-    background: rgba(10, 20, 30, 0.7);
+    background: rgba(10,20,30,0.7);
     backdrop-filter: blur(12px);
-    border: 1px solid rgba(0, 255, 255, 0.4);
+    border: 1px solid rgba(0,255,255,0.4);
     border-radius: 20px;
     padding: 12px 20px;
     margin-bottom: 20px;
@@ -254,15 +181,8 @@ body::before {
     width: 10px;
     height: 10px;
     border-radius: 50%;
-    background: #f00;
-    box-shadow: 0 0 6px #f00;
-    animation: blink 1.5s infinite;
-}
-
-.status-led.connected {
     background: #0f0;
     box-shadow: 0 0 8px #0f0;
-    animation: none;
 }
 
 .status-led.listening {
@@ -285,22 +205,21 @@ body::before {
 }
 
 .relay-card {
-    background: rgba(0, 20, 30, 0.7);
+    background: rgba(0,20,30,0.7);
     backdrop-filter: blur(10px);
     border-radius: 24px;
     padding: 16px 12px;
     text-align: center;
-    border: 1px solid rgba(0, 255, 255, 0.3);
-    transition: all 0.2s ease;
+    border: 1px solid rgba(0,255,255,0.3);
+    transition: all 0.2s;
     position: relative;
     cursor: pointer;
-    -webkit-tap-highlight-color: transparent;
 }
 
 .relay-card.active {
     border-color: #0ff;
-    box-shadow: 0 0 20px rgba(0, 255, 255, 0.5);
-    background: rgba(0, 60, 70, 0.8);
+    box-shadow: 0 0 20px rgba(0,255,255,0.5);
+    background: rgba(0,60,70,0.8);
 }
 
 .relay-card:active {
@@ -311,27 +230,23 @@ body::before {
     width: 70px;
     height: 70px;
     margin: 0 auto 10px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
 }
 
 .relay-icon img {
     width: 100%;
     height: 100%;
     object-fit: contain;
-    filter: drop-shadow(0 0 8px rgba(0, 255, 255, 0.5));
-    transition: all 0.3s ease;
+    filter: drop-shadow(0 0 8px rgba(0,255,255,0.5));
 }
 
 .relay-card.active .relay-icon img {
-    filter: drop-shadow(0 0 15px rgba(0, 255, 255, 0.8));
+    filter: drop-shadow(0 0 15px rgba(0,255,255,0.8));
     animation: iconPulse 0.5s ease-in-out;
 }
 
 @keyframes iconPulse {
-    0%, 100% { transform: scale(1); }
-    50% { transform: scale(1.1); }
+    0%,100%{transform:scale(1)}
+    50%{transform:scale(1.1)}
 }
 
 .relay-number {
@@ -339,7 +254,6 @@ body::before {
     font-weight: bold;
     color: #0ff;
     text-shadow: 0 0 6px #0ff;
-    letter-spacing: 1px;
 }
 
 .relay-name {
@@ -347,7 +261,6 @@ body::before {
     color: #b0f0ff;
     margin: 8px 0;
     font-weight: bold;
-    word-break: break-word;
 }
 
 .relay-label {
@@ -365,22 +278,16 @@ body::before {
     display: inline-block;
     width: 80px;
     font-weight: bold;
-    transition: all 0.2s;
 }
 
 .relay-state.pending {
     color: #ff0 !important;
     animation: pulse 0.5s infinite;
-    background: rgba(255, 255, 0, 0.2);
+    background: rgba(255,255,0,0.2);
 }
 
-.state-off {
-    color: #ff6a6a;
-}
-
-.state-on {
-    color: #6aff6a;
-}
+.state-off { color: #ff6a6a; }
+.state-on { color: #6aff6a; }
 
 .delay-control {
     margin-top: 8px;
@@ -394,33 +301,28 @@ body::before {
     border-radius: 20px;
 }
 
-.delay-control label {
-    color: #0ff;
-}
-
+.delay-control label { color: #0ff; }
 .delay-control input {
     width: 50px;
-    background: rgba(0, 30, 40, 0.8);
+    background: rgba(0,30,40,0.8);
     border: 1px solid #0ff;
     color: #0ff;
     padding: 2px 4px;
     border-radius: 8px;
     text-align: center;
-    font-size: 0.65rem;
 }
 
 .edit-name-btn {
     position: absolute;
     top: 8px;
     right: 8px;
-    background: rgba(0, 255, 255, 0.2);
+    background: rgba(0,255,255,0.2);
     border: 1px solid #0ff;
     color: #0ff;
     cursor: pointer;
     padding: 4px 8px;
     border-radius: 20px;
     font-size: 0.65rem;
-    transition: all 0.2s;
     display: flex;
     align-items: center;
     gap: 4px;
@@ -434,11 +336,11 @@ body::before {
 }
 
 .command-panel {
-    background: rgba(0, 0, 0, 0.6);
+    background: rgba(0,0,0,0.6);
     backdrop-filter: blur(8px);
     border-radius: 28px;
     padding: 18px;
-    border: 1px solid rgba(0, 255, 255, 0.4);
+    border: 1px solid rgba(0,255,255,0.4);
     margin-top: 16px;
 }
 
@@ -451,17 +353,15 @@ body::before {
 }
 
 .hud-btn {
-    background: rgba(0, 30, 40, 0.9);
+    background: rgba(0,30,40,0.9);
     border: 1px solid #0ff;
     color: #0ff;
     padding: 10px 18px;
     border-radius: 40px;
     font-weight: bold;
     cursor: pointer;
-    transition: 0.15s;
     font-family: monospace;
     font-size: 0.85rem;
-    backdrop-filter: blur(4px);
     flex: 1;
     min-width: 100px;
 }
@@ -477,11 +377,6 @@ body::before {
     color: #f66;
 }
 
-.hud-btn.danger:active {
-    background: #f66;
-    color: #000;
-}
-
 .voice-badge {
     display: inline-flex;
     align-items: center;
@@ -491,7 +386,6 @@ body::before {
     padding: 10px 20px;
     border-radius: 50px;
     cursor: pointer;
-    transition: all 0.2s;
     border: 1px solid #0ff;
     width: 100%;
     max-width: 320px;
@@ -502,16 +396,6 @@ body::before {
     background: #0ff22a;
     border-color: #ff0;
     animation: pulse 0.5s infinite;
-}
-
-.voice-badge:active {
-    transform: scale(0.98);
-}
-
-#voiceHint {
-    font-size: 0.7rem;
-    text-align: center;
-    word-break: break-word;
 }
 
 .note-text {
@@ -528,19 +412,17 @@ body::before {
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(0, 0, 0, 0.85);
+    background: rgba(0,0,0,0.85);
     backdrop-filter: blur(8px);
     z-index: 1000;
     justify-content: center;
     align-items: center;
 }
 
-.modal.active {
-    display: flex;
-}
+.modal.active { display: flex; }
 
 .modal-content {
-    background: rgba(10, 30, 40, 0.95);
+    background: rgba(10,30,40,0.95);
     border: 2px solid #0ff;
     border-radius: 28px;
     padding: 24px;
@@ -549,14 +431,10 @@ body::before {
     text-align: center;
 }
 
-.modal-content h3 {
-    color: #0ff;
-    margin-bottom: 20px;
-    font-size: 1.3rem;
-}
+.modal-content h3 { color: #0ff; margin-bottom: 20px; }
 
 .modal-input {
-    background: rgba(0, 30, 40, 0.8);
+    background: rgba(0,30,40,0.8);
     border: 1px solid #0ff;
     color: #0ff;
     padding: 12px;
@@ -582,44 +460,10 @@ body::before {
     flex: 1;
 }
 
-.modal-btn.save {
-    background: #0ff;
-    color: #000;
-}
-
-.modal-btn.delete {
-    background: #f66;
-    color: #000;
-}
-
-.modal-btn.cancel {
-    background: #333;
-    color: #fff;
-}
-
-.modal-btn:active {
-    transform: scale(0.97);
-}
-
-.shortcut-badge {
-    background: rgba(0, 255, 255, 0.15);
-    border-radius: 12px;
-    padding: 8px 12px;
-    margin-top: 10px;
-    font-size: 0.7rem;
-    text-align: center;
-    border: 1px solid rgba(0, 255, 255, 0.3);
-}
-
-.shortcut-badge span {
-    color: #ff0;
-    font-weight: bold;
-    display: inline-block;
-    background: rgba(0,0,0,0.5);
-    padding: 2px 8px;
-    border-radius: 20px;
-    margin: 0 2px;
-}
+.modal-btn.save { background: #0ff; color: #000; }
+.modal-btn.delete { background: #f66; color: #000; }
+.modal-btn.cancel { background: #333; color: #fff; }
+.modal-btn:active { transform: scale(0.97); }
 
 .footer {
     text-align: center;
@@ -627,42 +471,41 @@ body::before {
     padding: 16px;
     color: #6c9;
     font-size: 0.65rem;
-    border-top: 1px solid rgba(0, 255, 255, 0.2);
+    border-top: 1px solid rgba(0,255,255,0.2);
 }
 
-.netlify-badge {
-    display: inline-block;
-    margin-left: 10px;
+.telegram-panel {
+    margin-top: 12px;
+    padding: 10px;
+    border-top: 1px solid rgba(0,255,255,0.3);
+    text-align: center;
+}
+
+.telegram-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(0,100,150,0.3);
+    padding: 5px 12px;
+    border-radius: 20px;
+    font-size: 0.7rem;
+    color: #0ff;
 }
 
 @keyframes pulse {
-    0%, 100% { opacity: 1; transform: scale(1); }
-    50% { opacity: 0.5; transform: scale(1.2); }
+    0%,100%{opacity:1;transform:scale(1)}
+    50%{opacity:0.5;transform:scale(1.2)}
 }
 
-@keyframes blink {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.3; }
-}
-
-@media (max-width: 550px) {
-    .title { font-size: 1.6rem; }
-    .relay-card { padding: 12px 8px; }
-    .relay-icon { width: 55px; height: 55px; }
-    .relay-name { font-size: 0.85rem; }
-    .relay-label { font-size: 0.6rem; }
-    .hud-btn { padding: 8px 12px; font-size: 0.75rem; min-width: 80px; }
-    .status-text { font-size: 0.65rem; }
-    .edit-name-btn { font-size: 0.55rem; padding: 3px 6px; }
-    .relay-state { width: 70px; font-size: 0.8rem; }
-}
+.scrollable-table { overflow-x: auto; display: block; width: 100%; }
+.voice-status { font-size: 0.7rem; color: #ff0; margin-top: 8px; text-align: center; }
 
 .toast-message {
     position: fixed;
     bottom: 20px;
     left: 50%;
     transform: translateX(-50%);
-    background: rgba(0, 255, 255, 0.2);
+    background: rgba(0,255,255,0.2);
     backdrop-filter: blur(12px);
     border: 1px solid #0ff;
     color: #0ff;
@@ -672,28 +515,13 @@ body::before {
     font-weight: bold;
     z-index: 1001;
     font-size: 0.8rem;
-    max-width: 90vw;
-    text-align: center;
     pointer-events: none;
 }
 
-.scrollable-table {
-    overflow-x: auto;
-    display: block;
-    width: 100%;
-}
-
-.relay-color {
-    width: 12px;
-    height: 12px;
-    border-radius: 50%;
-    display: inline-block;
-    margin-right: 6px;
-}
-
-.voice-status {
-    font-size: 0.7rem;
-    color: #ff0;
-    margin-top: 8px;
-    text-align: center;
+@media (max-width: 550px) {
+    .title { font-size: 1.6rem; }
+    .relay-card { padding: 12px 8px; }
+    .relay-icon { width: 55px; height: 55px; }
+    .relay-name { font-size: 0.85rem; }
+    .hud-btn { padding: 8px 12px; font-size: 0.75rem; min-width: 80px; }
 }
